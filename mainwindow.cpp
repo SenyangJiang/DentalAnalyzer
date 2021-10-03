@@ -1,0 +1,234 @@
+#include "mainwindow.h"
+#include "./ui_mainwindow.h"
+#include <QFileDialog>
+#include <QDir>
+#include <QFile>
+#include <QTextStream>
+#include <QMessageBox>
+#include <QFuture> // for async computation
+#include <QtConcurrent/QtConcurrent> // for async computation
+
+#include "Analyzer.h"
+#include "audiorecorder.h"
+#include "result.h"
+
+#include <iostream>
+#include <stdlib.h>
+
+MainWindow::MainWindow(QWidget *parent)
+  : QMainWindow(parent)
+  , ui(new Ui::MainWindow)
+  , m_audioRecorder(new AudioRecorder())
+  , m_analyzer(new Analyzer())
+{
+  ui->setupUi(this);
+  QObject::connect(m_analyzer,&Analyzer::msgToConsole,this,&MainWindow::updateConsole);
+  QObject::connect(m_analyzer, &Analyzer::updateProgressBar, this, &MainWindow::setProgressBar);
+  QObject::connect(m_analyzer, &Analyzer::alertToWindow, this, &MainWindow::CreateAlert);
+}
+
+MainWindow::~MainWindow()
+{
+  delete ui;
+}
+
+void MainWindow::updateConsole(const QString &text)
+{
+  ui->textBrowserOutput->append(text);
+  std::cerr << text.toStdString() << std::endl;
+}
+
+void MainWindow::setProgressBar(int val)
+{
+  ui->progressBar->setValue(val);
+}
+
+void MainWindow::CreateAlert(const QString &text)
+{
+  QMessageBox::information(this, "Alert", text);
+}
+
+void MainWindow::on_pushButtonRecordAudio_clicked()
+{
+  m_audioRecorder->show();
+}
+
+void MainWindow::on_pushButtonSaveFeedback_clicked()
+{
+  QString fileName = QFileDialog::getSaveFileName(this, "Save Feedback", QDir::homePath(), tr("Text files (*.txt);;All Files (*)"));
+  if (fileName.isEmpty()) {
+      return;
+    }
+  else {
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+      QMessageBox::information(this, tr("Unable to open file"),
+                               file.errorString());
+      return;
+    }
+    QTextStream out(&file);
+    QString text = ui->textEdit->toPlainText();
+    out << text;
+    file.flush();
+    file.close();
+  }
+}
+
+void MainWindow::on_pushButtonAnalyze_clicked()
+{
+  if (ui->radioButtonAutoAlignment->isChecked()) {
+    param.useManualTransform = false;
+  } else {
+    param.useManualTransform = true;
+    param.transformMatrix[0][0] = ui->doubleSpinBox_11->value();
+    param.transformMatrix[0][1] = ui->doubleSpinBox_12->value();
+    param.transformMatrix[0][2] = ui->doubleSpinBox_13->value();
+    param.transformMatrix[0][3] = ui->doubleSpinBox_14->value();
+    param.transformMatrix[1][0] = ui->doubleSpinBox_21->value();
+    param.transformMatrix[1][1] = ui->doubleSpinBox_22->value();
+    param.transformMatrix[1][2] = ui->doubleSpinBox_23->value();
+    param.transformMatrix[1][3] = ui->doubleSpinBox_24->value();
+    param.transformMatrix[2][0] = ui->doubleSpinBox_31->value();
+    param.transformMatrix[2][1] = ui->doubleSpinBox_32->value();
+    param.transformMatrix[2][2] = ui->doubleSpinBox_33->value();
+    param.transformMatrix[2][3] = ui->doubleSpinBox_34->value();
+  }
+  m_analyzer->param = param;
+  QtConcurrent::run(this->m_analyzer, &Analyzer::analyze);
+}
+
+
+void MainWindow::on_pushButtonStudentFolder_clicked()
+{
+    QString dir = QFileDialog::getExistingDirectory(this, "Open Student Folder", QDir::homePath(), QFileDialog::ShowDirsOnly
+                                                    | QFileDialog::DontResolveSymlinks);
+    if (dir != "") {
+      ui->lineEditStudentFolder->setText(dir);
+      string base = dir.toStdString();
+      param.studentModel = base + "/model.off";
+      param.studentCenterPoint = base + "/center_point.pp";
+      param.studentMidpoint =  base + "/mid_point.pp";
+      param.studentMarginPoints =  base + "/margin_points.pp";
+      param.studentAxialPoints = base + "/axial_points.pp";
+      param.studentOcclusalPoints = base + "/occlusal_points.pp";
+      param.studentGingivaPoints = base + "/gingiva_points.pp";
+      ui->lineEditStudentModel->setText(QString::fromStdString(param.studentModel));
+      ui->lineEditStudentCenter->setText(QString::fromStdString(param.studentCenterPoint));
+      ui->lineEditStudentMidpoint->setText(QString::fromStdString(param.studentMidpoint));
+      ui->lineEditStudentMarginPoints->setText(QString::fromStdString(param.studentMarginPoints));
+      ui->lineEditStudentAxialPoints->setText(QString::fromStdString(param.studentAxialPoints));
+      ui->lineEditStudentOcclusalPoints->setText(QString::fromStdString(param.studentOcclusalPoints));
+      ui->lineEditStudentGingivaPoints->setText(QString::fromStdString(param.studentGingivaPoints));
+    }
+}
+
+void MainWindow::on_pushButtonStudentModel_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Student Model", QDir::homePath());
+  if (filename != "") {
+    param.studentModel = filename.toStdString();
+    QString cmd = QString("MeshLab\\meshlab.exe %1").arg(filename);
+    QFuture<int> future = QtConcurrent::run(system, cmd.toStdString().c_str());
+    ui->lineEditStudentModel->setText(filename);
+  }
+}
+
+void MainWindow::on_pushButtonStudentCenter_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Student Model Center", QDir::homePath());
+  if (filename != "") {
+    param.studentCenterPoint = filename.toStdString();
+    ui->lineEditStudentCenter->setText(filename);
+  }
+}
+
+void MainWindow::on_pushButtonStudentMidpoint_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Student Model Midpoint", QDir::homePath());
+  if (filename != "") {
+    param.studentMidpoint = filename.toStdString();
+    ui->lineEditStudentMidpoint->setText(filename);
+  }
+}
+
+void MainWindow::on_pushButtonStudentMarginPoints_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Student Margin Points", QDir::homePath());
+  if (filename != "") {
+    param.studentMarginPoints = filename.toStdString();
+    ui->lineEditStudentMarginPoints->setText(filename);
+  }
+}
+
+void MainWindow::on_pushButtonStudentAxialPoints_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Student Axial Points", QDir::homePath());
+  if (filename != "") {
+    param.studentAxialPoints = filename.toStdString();
+    ui->lineEditStudentAxialPoints->setText(filename);
+  }
+}
+
+void MainWindow::on_pushButtonStudentOcclusalPoints_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Student Occlusal Points", QDir::homePath());
+  if (filename != "") {
+    param.studentOcclusalPoints = filename.toStdString();
+    ui->lineEditStudentOcclusalPoints->setText(filename);
+  }
+}
+
+void MainWindow::on_pushButtonStudentGingivaPoints_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Student Gingiva Points", QDir::homePath());
+  if (filename != "") {
+    param.studentGingivaPoints = filename.toStdString();
+    ui->lineEditStudentGingivaPoints->setText(filename);
+  }
+}
+
+
+void MainWindow::on_pushButtonOriginalModel_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Original Model", QDir::homePath());
+  if (filename != "") {
+    param.originalModel = filename.toStdString();
+    QString cmd = QString("MeshLab\\meshlab.exe %1").arg(filename);
+    QFuture<int> future = QtConcurrent::run(system, cmd.toStdString().c_str());
+    ui->lineEditOriginalModel->setText(filename);
+  }
+}
+
+
+void MainWindow::on_radioButtonManualAlignment_toggled(bool checked)
+{
+    if (checked) {
+      ui->labelTransformationMatrix->setEnabled(true);
+      ui->doubleSpinBox_11->setEnabled(true);
+      ui->doubleSpinBox_12->setEnabled(true);
+      ui->doubleSpinBox_13->setEnabled(true);
+      ui->doubleSpinBox_14->setEnabled(true);
+      ui->doubleSpinBox_21->setEnabled(true);
+      ui->doubleSpinBox_22->setEnabled(true);
+      ui->doubleSpinBox_23->setEnabled(true);
+      ui->doubleSpinBox_24->setEnabled(true);
+      ui->doubleSpinBox_31->setEnabled(true);
+      ui->doubleSpinBox_32->setEnabled(true);
+      ui->doubleSpinBox_33->setEnabled(true);
+      ui->doubleSpinBox_34->setEnabled(true);
+    } else {
+      ui->labelTransformationMatrix->setDisabled(true);
+      ui->doubleSpinBox_11->setDisabled(true);
+      ui->doubleSpinBox_12->setDisabled(true);
+      ui->doubleSpinBox_13->setDisabled(true);
+      ui->doubleSpinBox_14->setDisabled(true);
+      ui->doubleSpinBox_21->setDisabled(true);
+      ui->doubleSpinBox_22->setDisabled(true);
+      ui->doubleSpinBox_23->setDisabled(true);
+      ui->doubleSpinBox_24->setDisabled(true);
+      ui->doubleSpinBox_31->setDisabled(true);
+      ui->doubleSpinBox_32->setDisabled(true);
+      ui->doubleSpinBox_33->setDisabled(true);
+      ui->doubleSpinBox_34->setDisabled(true);
+    }
+}
