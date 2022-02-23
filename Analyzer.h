@@ -34,6 +34,9 @@ private:
     // align student model with original model
     mycode::K::Aff_transformation_3 compute_alignment_matrix();
 
+    // select neighboring teeth in the form of (Point,Normal) pair
+    void select_neighboring_tooth_pwn(mycode::Mesh &m, std::vector<mycode::Pwn> &pwns, string neighboringToothMargin1, string neighboringToothMargin2);
+
     // constructing 2d lines from points
     void construct_lines(std::vector<mycode::Point_3> &points, std::vector<mycode::Segment_2> &lines);
 
@@ -77,7 +80,12 @@ private:
     void select_tooth_points(std::unordered_set<mycode::vertex_descriptor> &vertexSet);
 
     // report avg, min, max of an array of numbers
-    void report_stats(const std::vector<mycode::FT> &values);
+    void report_stats(double* avg, const std::vector<mycode::FT> &values);
+
+    // give feedback by comparing value against ruberic
+    void feedback();
+
+    bool division_enabled = false; /* debugging variable for disabling division of the tooth into 4 sections */
 
     mycode::Mesh student_model;
     mycode::Mesh original_model;

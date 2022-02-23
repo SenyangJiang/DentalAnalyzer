@@ -64,6 +64,8 @@ int Analyzer::analyze()
   compute_occlusal_reduction();
   emit updateProgressBar(85);
   compute_gingival_extension();
+  emit updateProgressBar(90);
+  // compute_roughness();
   emit updateProgressBar(100);
   return 0;
 }
@@ -89,26 +91,35 @@ void Analyzer::init()
   /* compute alignment matrix
    * and align student model with original model */
   K::Aff_transformation_3 transformation = this->compute_alignment_matrix();
+  std::cout << transformation << std::endl;
   CGAL::Polygon_mesh_processing::transform(transformation, this->student_model);
   CGAL::Polygon_mesh_processing::transform(transformation, this->student_model_poly);
+
+  // write transformed model to output
+  std::string output_name = "aligned1.ply";
+  std::ofstream out(output_name);
+  CGAL::write_ply(out, student_model);
 
   student_tree.rebuild(faces(this->student_model_poly).first, faces(this->student_model_poly).second, this->student_model_poly);
   original_tree.rebuild(faces(this->original_model_poly).first, faces(this->original_model_poly).second, this->original_model_poly);
 
-  std::vector<mycode::Point_3> temp;
-  readpp(temp, param.studentCenterPoint);
-  if (temp.size() != 1) {
-    std::cerr << "student model center point is not a single point, size: " << temp.size() << std::endl;
-    return;
-  }
-  student_model_center = temp[0].transform(transformation);
-  temp.clear();
-  readpp(temp, param.studentMidpoint);
-  if (temp.size() != 1) {
-    std::cerr << "student model mid point is not a single point, size: " << temp.size() << std::endl;
-    return;
-  }
-  student_model_midpoint = temp[0].transform(transformation);
+
+  if (division_enabled) {
+    std::vector<mycode::Point_3> temp;
+    readpp(temp, param.studentCenterPoint);
+    if (temp.size() != 1) {
+      std::cerr << "student model center point is not a single point, size: " << temp.size() << std::endl;
+      return;
+    }
+    student_model_center = temp[0].transform(transformation);
+    temp.clear();
+    readpp(temp, param.studentMidpoint);
+    if (temp.size() != 1) {
+      std::cerr << "student model mid point is not a single point, size: " << temp.size() << std::endl;
+      return;
+    }
+    student_model_midpoint = temp[0].transform(transformation);
+ }
 
   /* read sets of points on student model from file
    * and transform these points according to the alignment matrix */
@@ -137,30 +148,70 @@ K::Aff_transformation_3 Analyzer::compute_alignment_matrix()
         param.transformMatrix[1][0],param.transformMatrix[1][1],param.transformMatrix[1][2],param.transformMatrix[1][3],
         param.transformMatrix[2][0],param.transformMatrix[2][1],param.transformMatrix[2][2],param.transformMatrix[2][3]);
   } else {
-    std::vector<Pwn> pwns1, pwns2;
-    std::ifstream input(param.studentModel);
-    CGAL::read_off_points(input, std::back_inserter(pwns1),
-                CGAL::parameters::point_map (Point_map()).
-                normal_map (Normal_map()));
-    input.close();
+    std::vector<Pwn> student_pwns, original_pwns;
+    select_neighboring_tooth_pwn(original_model, original_pwns, param.originalNeighborToothMarginPoint1, param.originalNeighborToothMarginPoint2);
+    select_neighboring_tooth_pwn(student_model, student_pwns, param.studentNeighborToothMarginPoint1, param.studentNeighborToothMarginPoint2);
 
-    input.open(param.originalModel);
-    CGAL::read_off_points(input, std::back_inserter(pwns2),
-                CGAL::parameters::point_map (Point_map()).
-                normal_map (Normal_map()));
-    input.close();
+    std::cout << "student: " << student_pwns.size() << std::endl;
+    std::cout << "original: " << original_pwns.size() << std::endl;
+
     K::Aff_transformation_3 res1 =
         std::get<0>(
-            CGAL::OpenGR::compute_registration_transformation(pwns1, pwns2,
-                                                              params::point_map(Point_map()).normal_map(Normal_map()),
+            CGAL::OpenGR::compute_registration_transformation(original_pwns, student_pwns,
+                                                              params::point_map(Point_map()).normal_map(Normal_map())
+                                                              .number_of_samples(5000)
+                                                              .overlap(1),
                                                               params::point_map(Point_map()).normal_map(Normal_map())));
 
     K::Aff_transformation_3 res2 =
         std::get<0>(
-            CGAL::pointmatcher::compute_registration_transformation(pwns1, pwns2,
+            CGAL::pointmatcher::compute_registration_transformation(original_pwns, student_pwns,
                                                                     params::point_map(Point_map()).normal_map(Normal_map()),
                                                                     params::point_map(Point_map()).normal_map(Normal_map()).transformation(res1)));
-    return res2;
+
+    return res1;
+  }
+}
+
+void Analyzer::select_neighboring_tooth_pwn(mycode::Mesh &m, std::vector<Pwn> &pwns, string neighboringToothMargin1, string neighboringToothMargin2)
+{
+  std::vector<mycode::Point_3> margin_points_1, margin_points_2;
+  readpp(margin_points_1, neighboringToothMargin1);
+  readpp(margin_points_2, neighboringToothMargin2);
+  /* calculate the mean value of margin_1 */
+  double avg_y1 = 0;
+  int count = 0;
+  for (auto p = margin_points_1.begin(); p != margin_points_1.end(); p++)
+  {
+    avg_y1 += p->y();
+    count++;
+  }
+  avg_y1 /= count;
+  std::vector<mycode::Segment_2> margin_lines_1;
+  construct_lines(margin_points_1, margin_lines_1);
+
+  /* calculate the mean value of margin_2 */
+  double avg_y2 = 0;
+  count = 0;
+  for (auto p = margin_points_2.begin(); p != margin_points_2.end(); p++)
+  {
+    avg_y2 += p->y();
+    count++;
+  }
+  avg_y2 /= count;
+  std::vector<mycode::Segment_2> margin_lines_2;
+  construct_lines(margin_points_2, margin_lines_2);
+
+  for (vertex_descriptor vi : m.vertices())
+  {
+    mycode::Point_3 p = m.point(vi);
+    mycode::Point_2 point(p.x(), p.z());
+
+    if ((within_lines(point, margin_lines_1) && (std::abs(p.y() - avg_y1) < 10)) ||
+        (within_lines(point, margin_lines_2) && (std::abs(p.y() - avg_y2) < 10)))
+    {
+      pwns.push_back(std::pair<mycode::Point_3, mycode::Vector_3>(mycode::Point_3(p.x(), p.y(), p.z()), mycode::Vector_3(0, 0, 0)));
+    }
   }
 }
 
@@ -199,10 +250,14 @@ bool Analyzer::within_lines(mycode::Point_2 &point, std::vector<mycode::Segment_
 // compute taper (half of toc)
 void Analyzer::compute_taper()
 {
+  // used when division enabled
   std::vector<mycode::FT> tapers_lingual;
   std::vector<mycode::FT> tapers_buccal;
   std::vector<mycode::FT> tapers_mesial;
   std::vector<mycode::FT> tapers_distal;
+
+  // used when division disabled
+  std::vector<mycode::FT> tapers;
 
   /* compute toc
    * first we compute the "average" point of occlusal points */
@@ -272,36 +327,44 @@ void Analyzer::compute_taper()
     /* toc is the angle formed by the axial wall approx of target point and far point */
     mycode::FT toc = CGAL::approximate_angle(v1, v2);
     mycode::FT taper = toc/2;
-    std::cerr << "checking region" << std::endl;
-    switch (region_of(target_point)) {
-      case Lingual:
-        tapers_lingual.push_back(taper);
-        break;
-      case Buccal:
-        tapers_buccal.push_back(taper);
-        break;
-      case Mesial:
-        tapers_mesial.push_back(taper);
-        break;
-      case Distal:
-        tapers_distal.push_back(taper);
-        break;
+
+    if (division_enabled) {
+      std::cerr << "checking region" << std::endl;
+      switch (region_of(target_point)) {
+        case Lingual:
+          tapers_lingual.push_back(taper);
+          break;
+        case Buccal:
+          tapers_buccal.push_back(taper);
+          break;
+        case Mesial:
+          tapers_mesial.push_back(taper);
+          break;
+        case Distal:
+          tapers_distal.push_back(taper);
+          break;
+      }
+    } else {
+      tapers.push_back(taper);
     }
   }
 
-  std::cerr << "reporting in" << std::endl;
   /* report stats to the console */
   emit msgToConsole("=============");
   emit msgToConsole("=== TAPER ===");
   emit msgToConsole("=============");
-  emit msgToConsole("=== Lingual ===");
-  report_stats(tapers_lingual);
-  emit msgToConsole("=== Buccal ===");
-  report_stats(tapers_buccal);
-  emit msgToConsole("=== Mesial ===");
-  report_stats(tapers_mesial);
-  emit msgToConsole("=== Distal ===");
-  report_stats(tapers_distal);
+  if (division_enabled) {
+    emit msgToConsole("=== Lingual ===");
+    report_stats(&student_result.taper[0], tapers_lingual);
+    emit msgToConsole("=== Buccal ===");
+    report_stats(&student_result.taper[1], tapers_buccal);
+    emit msgToConsole("=== Mesial ===");
+    report_stats(&student_result.taper[2], tapers_mesial);
+    emit msgToConsole("=== Distal ===");
+    report_stats(&student_result.taper[3], tapers_distal);
+  } else {
+    report_stats(&student_result.taper[0], tapers);
+  }
 }
 
 void Analyzer::compute_occlusal_reduction()
@@ -311,24 +374,30 @@ void Analyzer::compute_occlusal_reduction()
   std::vector<mycode::FT> occlusal_reductions_mesial;
   std::vector<mycode::FT> occlusal_reductions_distal;
 
+  std::vector<mycode::FT> occlusal_reductions;
+
   std::unordered_set<mycode::vertex_descriptor> points_on_occlusal;
   select_occlusal_points(points_on_occlusal);
   for (auto& vi : points_on_occlusal) {
     mycode::Point_3 p = student_model.point(vi);
     mycode::FT dist = CGAL::sqrt(original_tree.squared_distance(p));
-    switch (region_of(p)) {
-      case Lingual:
-        occlusal_reductions_lingual.push_back(dist);
-        break;
-      case Buccal:
-        occlusal_reductions_buccal.push_back(dist);
-        break;
-      case Mesial:
-        occlusal_reductions_mesial.push_back(dist);
-        break;
-      case Distal:
-        occlusal_reductions_distal.push_back(dist);
-        break;
+    if (division_enabled) {
+      switch (region_of(p)) {
+        case Lingual:
+          occlusal_reductions_lingual.push_back(dist);
+          break;
+        case Buccal:
+          occlusal_reductions_buccal.push_back(dist);
+          break;
+        case Mesial:
+          occlusal_reductions_mesial.push_back(dist);
+          break;
+        case Distal:
+          occlusal_reductions_distal.push_back(dist);
+          break;
+      }
+    } else {
+      occlusal_reductions.push_back(dist);
     }
   }
 
@@ -336,14 +405,18 @@ void Analyzer::compute_occlusal_reduction()
   emit msgToConsole("==========================");
   emit msgToConsole("=== OCCLUSAL REDUCTION ===");
   emit msgToConsole("==========================");
-  emit msgToConsole("=== Lingual ===");
-  report_stats(occlusal_reductions_lingual);
-  emit msgToConsole("=== Buccal ===");
-  report_stats(occlusal_reductions_buccal);
-  emit msgToConsole("=== Mesial ===");
-  report_stats(occlusal_reductions_mesial);
-  emit msgToConsole("=== Distal ===");
-  report_stats(occlusal_reductions_distal);
+  if (division_enabled) {
+    emit msgToConsole("=== Lingual ===");
+    report_stats(&student_result.occlusal_reduction[0], occlusal_reductions_lingual);
+    emit msgToConsole("=== Buccal ===");
+    report_stats(&student_result.occlusal_reduction[1], occlusal_reductions_buccal);
+    emit msgToConsole("=== Mesial ===");
+    report_stats(&student_result.occlusal_reduction[2], occlusal_reductions_mesial);
+    emit msgToConsole("=== Distal ===");
+    report_stats(&student_result.occlusal_reduction[3], occlusal_reductions_distal);
+  } else {
+    report_stats(&student_result.occlusal_reduction[0], occlusal_reductions);
+  }
 }
 
 void Analyzer::compute_margin_depth()
@@ -353,24 +426,30 @@ void Analyzer::compute_margin_depth()
   std::vector<mycode::FT> margin_depths_mesial;
   std::vector<mycode::FT> margin_depths_distal;
 
+  std::vector<mycode::FT> margin_depths;
+
   for (auto& p : margin_points) {
     mycode::Point_3 point_half_mm_above(p.x(), p.y() + 0.5, p.z());
     mycode::Point_3 student_point = student_tree.closest_point(point_half_mm_above);
     mycode::Point_3 original_point = original_tree.closest_point(point_half_mm_above);
     mycode::FT dist = CGAL::sqrt(CGAL::squared_distance(student_point, original_point));
-    switch (region_of(p)) {
-      case Lingual:
-        margin_depths_lingual.push_back(dist);
-        break;
-      case Buccal:
-        margin_depths_buccal.push_back(dist);
-        break;
-      case Mesial:
-        margin_depths_mesial.push_back(dist);
-        break;
-      case Distal:
-        margin_depths_distal.push_back(dist);
-        break;
+    if (division_enabled) {
+      switch (region_of(p)) {
+        case Lingual:
+          margin_depths_lingual.push_back(dist);
+          break;
+        case Buccal:
+          margin_depths_buccal.push_back(dist);
+          break;
+        case Mesial:
+          margin_depths_mesial.push_back(dist);
+          break;
+        case Distal:
+          margin_depths_distal.push_back(dist);
+          break;
+      }
+    } else {
+      margin_depths.push_back(dist);
     }
   }
 
@@ -378,14 +457,18 @@ void Analyzer::compute_margin_depth()
   emit msgToConsole("====================");
   emit msgToConsole("=== MARGIN DEPTH ===");
   emit msgToConsole("====================");
-  emit msgToConsole("=== Lingual ===");
-  report_stats(margin_depths_lingual);
-  emit msgToConsole("=== Buccal ===");
-  report_stats(margin_depths_buccal);
-  emit msgToConsole("=== Mesial ===");
-  report_stats(margin_depths_mesial);
-  emit msgToConsole("=== Distal ===");
-  report_stats(margin_depths_distal);
+  if (division_enabled) {
+    emit msgToConsole("=== Lingual ===");
+    report_stats(&student_result.margin_depth[0], margin_depths_lingual);
+    emit msgToConsole("=== Buccal ===");
+    report_stats(&student_result.margin_depth[1], margin_depths_buccal);
+    emit msgToConsole("=== Mesial ===");
+    report_stats(&student_result.margin_depth[2], margin_depths_mesial);
+    emit msgToConsole("=== Distal ===");
+    report_stats(&student_result.margin_depth[3], margin_depths_distal);
+  } else {
+    report_stats(&student_result.margin_depth[0], margin_depths);
+  }
 }
 
 void Analyzer::compute_gingival_extension()
@@ -394,6 +477,8 @@ void Analyzer::compute_gingival_extension()
   std::vector<mycode::FT> gingival_extension_buccal;
   std::vector<mycode::FT> gingival_extension_mesial;
   std::vector<mycode::FT> gingival_extension_distal;
+
+  std::vector<mycode::FT> gingival_extension;
 
   for (auto& target_point : margin_points) {
     mycode::FT min_angle = 180;
@@ -408,19 +493,23 @@ void Analyzer::compute_gingival_extension()
       }
     }
     mycode::FT dist = CGAL::sqrt(CGAL::squared_distance(vertical_point, target_point));
-    switch (region_of(target_point)) {
-      case Lingual:
-        gingival_extension_lingual.push_back(dist);
-        break;
-      case Buccal:
-        gingival_extension_buccal.push_back(dist);
-        break;
-      case Mesial:
-        gingival_extension_mesial.push_back(dist);
-        break;
-      case Distal:
-        gingival_extension_distal.push_back(dist);
-        break;
+    if (division_enabled) {
+      switch (region_of(target_point)) {
+        case Lingual:
+          gingival_extension_lingual.push_back(dist);
+          break;
+        case Buccal:
+          gingival_extension_buccal.push_back(dist);
+          break;
+        case Mesial:
+          gingival_extension_mesial.push_back(dist);
+          break;
+        case Distal:
+          gingival_extension_distal.push_back(dist);
+          break;
+      }
+    } else {
+      gingival_extension.push_back(dist);
     }
   }
 
@@ -428,14 +517,18 @@ void Analyzer::compute_gingival_extension()
   emit msgToConsole("==========================");
   emit msgToConsole("=== GINGIVAL EXTENSION ===");
   emit msgToConsole("==========================");
-  emit msgToConsole("=== Lingual ===");
-  report_stats(gingival_extension_lingual);
-  emit msgToConsole("=== Buccal ===");
-  report_stats(gingival_extension_buccal);
-  emit msgToConsole("=== Mesial ===");
-  report_stats(gingival_extension_mesial);
-  emit msgToConsole("=== Distal ===");
-  report_stats(gingival_extension_distal);
+  if (division_enabled) {
+    emit msgToConsole("=== Lingual ===");
+    report_stats(&student_result.gingival_extension[0], gingival_extension_lingual);
+    emit msgToConsole("=== Buccal ===");
+    report_stats(&student_result.gingival_extension[1], gingival_extension_buccal);
+    emit msgToConsole("=== Mesial ===");
+    report_stats(&student_result.gingival_extension[2], gingival_extension_mesial);
+    emit msgToConsole("=== Distal ===");
+    report_stats(&student_result.gingival_extension[3], gingival_extension_distal);
+  } else {
+    report_stats(&student_result.gingival_extension[0], gingival_extension);
+  }
 }
 
 void Analyzer::compute_shoulder_width()
@@ -444,6 +537,8 @@ void Analyzer::compute_shoulder_width()
   std::vector<mycode::FT> shoulder_widths_buccal;
   std::vector<mycode::FT> shoulder_widths_mesial;
   std::vector<mycode::FT> shoulder_widths_distal;
+
+  std::vector<mycode::FT> shoulder_widths;
 
   for (auto ap : axial_points)
   {
@@ -456,19 +551,23 @@ void Analyzer::compute_shoulder_width()
         min_dist = dist;
       }
     }
-    switch (region_of(ap)) {
-      case Lingual:
-        shoulder_widths_lingual.push_back(min_dist);
-        break;
-      case Buccal:
-        shoulder_widths_buccal.push_back(min_dist);
-        break;
-      case Mesial:
-        shoulder_widths_mesial.push_back(min_dist);
-        break;
-      case Distal:
-        shoulder_widths_distal.push_back(min_dist);
-        break;
+    if (division_enabled) {
+      switch (region_of(ap)) {
+        case Lingual:
+          shoulder_widths_lingual.push_back(min_dist);
+          break;
+        case Buccal:
+          shoulder_widths_buccal.push_back(min_dist);
+          break;
+        case Mesial:
+          shoulder_widths_mesial.push_back(min_dist);
+          break;
+        case Distal:
+          shoulder_widths_distal.push_back(min_dist);
+          break;
+      }
+    } else {
+      shoulder_widths.push_back(min_dist);
     }
   }
 
@@ -476,14 +575,18 @@ void Analyzer::compute_shoulder_width()
   emit msgToConsole("======================");
   emit msgToConsole("=== SHOULDER WIDTH ===");
   emit msgToConsole("======================");
-  emit msgToConsole("=== Lingual ===");
-  report_stats(shoulder_widths_lingual);
-  emit msgToConsole("=== Buccal ===");
-  report_stats(shoulder_widths_buccal);
-  emit msgToConsole("=== Mesial ===");
-  report_stats(shoulder_widths_mesial);
-  emit msgToConsole("=== Distal ===");
-  report_stats(shoulder_widths_distal);
+  if (division_enabled) {
+    emit msgToConsole("=== Lingual ===");
+    report_stats(&student_result.shoulder_width[0], shoulder_widths_lingual);
+    emit msgToConsole("=== Buccal ===");
+    report_stats(&student_result.shoulder_width[1], shoulder_widths_buccal);
+    emit msgToConsole("=== Mesial ===");
+    report_stats(&student_result.shoulder_width[2], shoulder_widths_mesial);
+    emit msgToConsole("=== Distal ===");
+    report_stats(&student_result.shoulder_width[3], shoulder_widths_distal);
+  } else {
+    report_stats(&student_result.shoulder_width[0], shoulder_widths);
+  }
 }
 
 void Analyzer::compute_axial_wall_height()
@@ -492,6 +595,8 @@ void Analyzer::compute_axial_wall_height()
   std::vector<mycode::FT> axial_wall_height_buccal;
   std::vector<mycode::FT> axial_wall_height_mesial;
   std::vector<mycode::FT> axial_wall_height_distal;
+
+  std::vector<mycode::FT> axial_wall_height;
 
   for (auto op : occlusal_points)
   {
@@ -507,19 +612,23 @@ void Analyzer::compute_axial_wall_height()
       }
     }
     mycode::FT height = CGAL::sqrt(CGAL::squared_distance(op, vertical_point));
-    switch (region_of(op)) {
-      case Lingual:
-        axial_wall_height_lingual.push_back(height);
-        break;
-      case Buccal:
-        axial_wall_height_buccal.push_back(height);
-        break;
-      case Mesial:
-        axial_wall_height_mesial.push_back(height);
-        break;
-      case Distal:
-        axial_wall_height_distal.push_back(height);
-        break;
+    if (division_enabled) {
+      switch (region_of(op)) {
+        case Lingual:
+          axial_wall_height_lingual.push_back(height);
+          break;
+        case Buccal:
+          axial_wall_height_buccal.push_back(height);
+          break;
+        case Mesial:
+          axial_wall_height_mesial.push_back(height);
+          break;
+        case Distal:
+          axial_wall_height_distal.push_back(height);
+          break;
+      }
+    } else {
+      axial_wall_height.push_back(height);
     }
   }
 
@@ -527,24 +636,167 @@ void Analyzer::compute_axial_wall_height()
   emit msgToConsole("=========================");
   emit msgToConsole("=== AXIAL WALL HEIGHT ===");
   emit msgToConsole("=========================");
-  emit msgToConsole("=== Lingual ===");
-  report_stats(axial_wall_height_lingual);
-  emit msgToConsole("=== Buccal ===");
-  report_stats(axial_wall_height_buccal);
-  emit msgToConsole("=== Mesial ===");
-  report_stats(axial_wall_height_mesial);
-  emit msgToConsole("=== Distal ===");
-  report_stats(axial_wall_height_distal);
+  if (division_enabled) {
+    emit msgToConsole("=== Lingual ===");
+    report_stats(&student_result.axial_wall_height[0], axial_wall_height_lingual);
+    emit msgToConsole("=== Buccal ===");
+    report_stats(&student_result.axial_wall_height[1], axial_wall_height_buccal);
+    emit msgToConsole("=== Mesial ===");
+    report_stats(&student_result.axial_wall_height[2], axial_wall_height_mesial);
+    emit msgToConsole("=== Distal ===");
+    report_stats(&student_result.axial_wall_height[3], axial_wall_height_distal);
+  } else {
+    report_stats(&student_result.axial_wall_height[0], axial_wall_height);
+  }
 }
 
 void Analyzer::compute_roughness()
 {
+  emit msgToConsole("computing roughness for the shoulder, this might take about 1 minute...");
+
   std::unordered_set<mycode::vertex_descriptor> pointsOnShoulder;
   std::unordered_set<mycode::vertex_descriptor> pointsOnAxialWall;
   select_shoulder_points(pointsOnShoulder);
   select_axial_wall_points(pointsOnAxialWall);
 
-  // TODO: Compute Roughness
+  PolyhedronPtr poly = PolyhedronPtr(new Polyhedron_enriched()); // it was called Polyhedron, Polyhedron_enriched is just an alias to resolve typedef issues
+  poly->load_mesh_off(param.studentModel);
+  mycode::Mesh m1; // m1 will store roughness on shoulder
+  mycode::Mesh m2; // m2 will store roughness on axial wall
+
+  std::ifstream input(this->param.studentModel);
+  CGAL::read_off(input, m1);
+  input.close();
+
+  input.open(this->param.studentModel);
+  CGAL::read_off(input, m2);
+  input.close();
+
+  poly->Normalise();
+  poly->compute_bounding_box();
+  poly->compute_normals();
+  poly->compute_type();
+  poly->calc_nb_components();
+  poly->calc_nb_boundaries();
+
+  double epsilon = 0.01;
+
+  CRoughness<Polyhedron_enriched> roughness(poly.get());
+  roughness.compute_Roughness(2 * epsilon, epsilon);
+
+  mycode::Mesh::Property_map<mycode::vertex_descriptor, double> roughness_on_shoulder;
+  bool created;
+  boost::tie(roughness_on_shoulder, created) = m1.add_property_map<mycode::vertex_descriptor, double>("v:quality", 0.0);
+  assert(created);
+  mycode::Mesh::Property_map<mycode::vertex_descriptor, double> roughness_on_axial_wall;
+  boost::tie(roughness_on_axial_wall, created) = m2.add_property_map<mycode::vertex_descriptor, double>("v:quality", 0.0);
+  assert(created);
+
+  // roughness of points in four regions
+  std::vector<mycode::FT> shoulder_roughness_lingual;
+  std::vector<mycode::FT> shoulder_roughness_buccal;
+  std::vector<mycode::FT> shoulder_roughness_mesial;
+  std::vector<mycode::FT> shoulder_roughness_distal;
+
+  std::vector<mycode::FT> axial_wall_roughness_lingual;
+  std::vector<mycode::FT> axial_wall_roughness_buccal;
+  std::vector<mycode::FT> axial_wall_roughness_mesial;
+  std::vector<mycode::FT> axial_wall_roughness_distal;
+
+  // average roughness in four sectors
+  double avg_roughness_shoulder[4] = {};
+  double avg_roughness_axial_wall[4] = {};
+
+  mycode::vertex_descriptor vi = *(m1.vertices().begin());
+  for (Vertex_iterator pVertex = poly->vertices_begin(); pVertex != poly->vertices_end(); pVertex++)
+  {
+    if (pointsOnShoulder.find(vi) != pointsOnShoulder.end()) {
+      // add roughness quality on the shoulder
+      mycode::Point_3 p = this->student_model.point(vi);
+      roughness_on_shoulder[vi] = pVertex->Roughness();
+      switch (region_of(p)) {
+        case Lingual:
+          shoulder_roughness_lingual.push_back(pVertex->Roughness());
+          break;
+        case Buccal:
+          shoulder_roughness_buccal.push_back(pVertex->Roughness());
+          break;
+        case Mesial:
+          shoulder_roughness_mesial.push_back(pVertex->Roughness());
+          break;
+        case Distal:
+          shoulder_roughness_distal.push_back(pVertex->Roughness());
+          break;
+      }
+    } else if (pointsOnAxialWall.find(vi) != pointsOnAxialWall.end()) {
+      // add roughness quality on the axial wall
+      mycode::Point_3 p = this->student_model.point(vi);
+      roughness_on_axial_wall[vi] = pVertex->Roughness();
+      switch (region_of(p)) {
+        case Lingual:
+          axial_wall_roughness_lingual.push_back(pVertex->Roughness());
+          break;
+        case Buccal:
+          axial_wall_roughness_buccal.push_back(pVertex->Roughness());
+          break;
+        case Mesial:
+          axial_wall_roughness_mesial.push_back(pVertex->Roughness());
+          break;
+        case Distal:
+          axial_wall_roughness_distal.push_back(pVertex->Roughness());
+          break;
+      }
+    }
+    vi++;
+  }
+  avg_roughness_shoulder[0] = std::accumulate(shoulder_roughness_lingual.begin(), shoulder_roughness_lingual.end(), 0.0) / shoulder_roughness_lingual.size();
+  avg_roughness_shoulder[1] = std::accumulate(shoulder_roughness_buccal.begin(), shoulder_roughness_buccal.end(), 0.0) / shoulder_roughness_buccal.size();
+  avg_roughness_shoulder[2] = std::accumulate(shoulder_roughness_mesial.begin(), shoulder_roughness_mesial.end(), 0.0) / shoulder_roughness_mesial.size();
+  avg_roughness_shoulder[3] = std::accumulate(shoulder_roughness_distal.begin(), shoulder_roughness_distal.end(), 0.0) / shoulder_roughness_distal.size();
+
+  avg_roughness_axial_wall[0] = std::accumulate(axial_wall_roughness_lingual.begin(), axial_wall_roughness_lingual.end(), 0.0) / axial_wall_roughness_lingual.size();
+  avg_roughness_axial_wall[1] = std::accumulate(axial_wall_roughness_buccal.begin(), axial_wall_roughness_buccal.end(), 0.0) / axial_wall_roughness_buccal.size();
+  avg_roughness_axial_wall[2] = std::accumulate(axial_wall_roughness_mesial.begin(), axial_wall_roughness_mesial.end(), 0.0) / axial_wall_roughness_mesial.size();
+  avg_roughness_axial_wall[3] = std::accumulate(axial_wall_roughness_distal.begin(), axial_wall_roughness_distal.end(), 0.0) / axial_wall_roughness_distal.size();
+
+  std::ofstream out("roughness_shoulder.ply");
+  bool wrote = CGAL::write_ply(out, m1);
+  if (!wrote)
+  {
+    std::cerr << "write failed" << std::endl;
+  }
+
+  std::ofstream out2("roughness_axial_wall.ply");
+  wrote = CGAL::write_ply(out2, m2);
+  if (!wrote)
+  {
+    std::cerr << "write failed" << std::endl;
+  }
+
+  /* report stats to the console */
+  emit msgToConsole("=============================");
+  emit msgToConsole("=== ROUGHNESS ON SHOULDER ===");
+  emit msgToConsole("=============================");
+  emit msgToConsole("=== Lingual ===");
+  report_stats(&student_result.roughness_shoulder[0], shoulder_roughness_lingual);
+  emit msgToConsole("=== Buccal ===");
+  report_stats(&student_result.roughness_shoulder[1], shoulder_roughness_buccal);
+  emit msgToConsole("=== Mesial ===");
+  report_stats(&student_result.roughness_shoulder[2], shoulder_roughness_mesial);
+  emit msgToConsole("=== Distal ===");
+  report_stats(&student_result.roughness_shoulder[3], shoulder_roughness_distal);
+
+  emit msgToConsole("===============================");
+  emit msgToConsole("=== ROUGHNESS ON AXIAL WALL ===");
+  emit msgToConsole("===============================");
+  emit msgToConsole("=== Lingual ===");
+  report_stats(&student_result.roughness_axial_wall[0], axial_wall_roughness_lingual);
+  emit msgToConsole("=== Buccal ===");
+  report_stats(&student_result.roughness_axial_wall[1], axial_wall_roughness_buccal);
+  emit msgToConsole("=== Mesial ===");
+  report_stats(&student_result.roughness_axial_wall[2], axial_wall_roughness_mesial);
+  emit msgToConsole("=== Distal ===");
+  report_stats(&student_result.roughness_axial_wall[3], axial_wall_roughness_distal);
 }
 
 Region Analyzer::region_of(mycode::Point_3 point)
@@ -681,8 +933,9 @@ void Analyzer::select_axial_wall_points(std::unordered_set<mycode::vertex_descri
     select_tooth_points(points_on_tooth);
     select_occlusal_points(points_on_occlusal);
     select_shoulder_points(points_on_shoulder);
+
     for (vertex_descriptor vi : points_on_tooth) {
-      if ((points_on_occlusal.find(vi) == points_on_occlusal.end()) && (points_on_shoulder.find(vi) == points_on_occlusal.end())) {
+      if ((points_on_occlusal.find(vi) == points_on_occlusal.end()) && (points_on_shoulder.find(vi) == points_on_shoulder.end())) {
         vertexSet.insert(vi);
       }
     }
@@ -714,11 +967,17 @@ void Analyzer::select_tooth_points(std::unordered_set<mycode::vertex_descriptor>
   }
 }
 
-void Analyzer::report_stats(const std::vector<mycode::FT> &values)
+void Analyzer::report_stats(double* avg, const std::vector<mycode::FT> &values)
 {
   mycode::FT average = accumulate(values.begin(), values.end(), 0.0)/values.size();
+  *avg = average; /* save the average value into student_result */
   emit msgToConsole(QString("number of values in region = %1").arg(values.size()));
   emit msgToConsole(QString("average = %1").arg(average));
   emit msgToConsole(QString("max = %1").arg(*max_element(values.begin(), values.end())));
   emit msgToConsole(QString("min = %1").arg(*min_element(values.begin(), values.end())));
+}
+
+void Analyzer::feedback()
+{
+  return;
 }

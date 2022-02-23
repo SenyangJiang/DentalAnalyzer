@@ -9,11 +9,15 @@ struct Parameter {
   string studentModel;
   string studentCenterPoint;
   string studentMidpoint;
+  string studentNeighborToothMarginPoint1;
+  string studentNeighborToothMarginPoint2;
   string studentMarginPoints;
   string studentAxialPoints;
   string studentOcclusalPoints;
   string studentGingivaPoints;
   string originalModel;
+  string originalNeighborToothMarginPoint1;
+  string originalNeighborToothMarginPoint2;
   bool useManualTransform;
   double transformMatrix[4][4];
 };

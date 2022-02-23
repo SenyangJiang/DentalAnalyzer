@@ -79,19 +79,24 @@ void MainWindow::on_pushButtonAnalyze_clicked()
   if (ui->radioButtonAutoAlignment->isChecked()) {
     param.useManualTransform = false;
   } else {
+    bool ok = false;
     param.useManualTransform = true;
-    param.transformMatrix[0][0] = ui->doubleSpinBox_11->value();
-    param.transformMatrix[0][1] = ui->doubleSpinBox_12->value();
-    param.transformMatrix[0][2] = ui->doubleSpinBox_13->value();
-    param.transformMatrix[0][3] = ui->doubleSpinBox_14->value();
-    param.transformMatrix[1][0] = ui->doubleSpinBox_21->value();
-    param.transformMatrix[1][1] = ui->doubleSpinBox_22->value();
-    param.transformMatrix[1][2] = ui->doubleSpinBox_23->value();
-    param.transformMatrix[1][3] = ui->doubleSpinBox_24->value();
-    param.transformMatrix[2][0] = ui->doubleSpinBox_31->value();
-    param.transformMatrix[2][1] = ui->doubleSpinBox_32->value();
-    param.transformMatrix[2][2] = ui->doubleSpinBox_33->value();
-    param.transformMatrix[2][3] = ui->doubleSpinBox_34->value();
+    param.transformMatrix[0][0] = ui->lineEdit_00->text().toDouble(&ok);
+    param.transformMatrix[0][1] = ui->lineEdit_01->text().toDouble(&ok);
+    param.transformMatrix[0][2] = ui->lineEdit_02->text().toDouble(&ok);
+    param.transformMatrix[0][3] = ui->lineEdit_03->text().toDouble(&ok);
+    param.transformMatrix[1][0] = ui->lineEdit_10->text().toDouble(&ok);
+    param.transformMatrix[1][1] = ui->lineEdit_11->text().toDouble(&ok);
+    param.transformMatrix[1][2] = ui->lineEdit_12->text().toDouble(&ok);
+    param.transformMatrix[1][3] = ui->lineEdit_13->text().toDouble(&ok);
+    param.transformMatrix[2][0] = ui->lineEdit_20->text().toDouble(&ok);
+    param.transformMatrix[2][1] = ui->lineEdit_21->text().toDouble(&ok);
+    param.transformMatrix[2][2] = ui->lineEdit_22->text().toDouble(&ok);
+    param.transformMatrix[2][3] = ui->lineEdit_23->text().toDouble(&ok);
+    param.transformMatrix[3][0] = ui->lineEdit_30->text().toDouble(&ok);
+    param.transformMatrix[3][1] = ui->lineEdit_31->text().toDouble(&ok);
+    param.transformMatrix[3][2] = ui->lineEdit_32->text().toDouble(&ok);
+    param.transformMatrix[3][3] = ui->lineEdit_33->text().toDouble(&ok);
   }
   m_analyzer->param = param;
   QtConcurrent::run(this->m_analyzer, &Analyzer::analyze);
@@ -151,6 +156,25 @@ void MainWindow::on_pushButtonStudentMidpoint_clicked()
   }
 }
 
+void MainWindow::on_pushButtonStudentNeighborToothMarginPoints1_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Student Neighbor Tooth Margin Points (1)", QDir::homePath());
+  if (filename != "") {
+    param.studentNeighborToothMarginPoint1 = filename.toStdString();
+    ui->lineEditStudentNeighborToothMarginPoints1->setText(filename);
+  }
+}
+
+void MainWindow::on_pushButtonStudentNeighborToothMarginPoints2_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Student Neighbor Tooth Margin Points (2)", QDir::homePath());
+  if (filename != "") {
+    param.studentNeighborToothMarginPoint2 = filename.toStdString();
+    ui->lineEditStudentNeighborToothMarginPoints2->setText(filename);
+  }
+}
+
+
 void MainWindow::on_pushButtonStudentMarginPoints_clicked()
 {
   QString filename = QFileDialog::getOpenFileName(this, "Open Student Margin Points", QDir::homePath());
@@ -199,36 +223,61 @@ void MainWindow::on_pushButtonOriginalModel_clicked()
   }
 }
 
+void MainWindow::on_pushButtonOriginalNeighborToothMarginPoints1_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Original Neighbor Tooth Margin Points (1)", QDir::homePath());
+  if (filename != "") {
+    param.originalNeighborToothMarginPoint1 = filename.toStdString();
+    ui->lineEditOriginalNeighborToothMarginPoints1->setText(filename);
+  }
+}
+
+void MainWindow::on_pushButtonOriginalNeighborToothMarginPoints2_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Open Original Neighbor Tooth Margin Points (2)", QDir::homePath());
+  if (filename != "") {
+    param.originalNeighborToothMarginPoint2 = filename.toStdString();
+    ui->lineEditOriginalNeighborToothMarginPoints2->setText(filename);
+  }
+}
 
 void MainWindow::on_radioButtonManualAlignment_toggled(bool checked)
 {
     if (checked) {
       ui->labelTransformationMatrix->setEnabled(true);
-      ui->doubleSpinBox_11->setEnabled(true);
-      ui->doubleSpinBox_12->setEnabled(true);
-      ui->doubleSpinBox_13->setEnabled(true);
-      ui->doubleSpinBox_14->setEnabled(true);
-      ui->doubleSpinBox_21->setEnabled(true);
-      ui->doubleSpinBox_22->setEnabled(true);
-      ui->doubleSpinBox_23->setEnabled(true);
-      ui->doubleSpinBox_24->setEnabled(true);
-      ui->doubleSpinBox_31->setEnabled(true);
-      ui->doubleSpinBox_32->setEnabled(true);
-      ui->doubleSpinBox_33->setEnabled(true);
-      ui->doubleSpinBox_34->setEnabled(true);
+      ui->lineEdit_00->setEnabled(true);
+      ui->lineEdit_01->setEnabled(true);
+      ui->lineEdit_02->setEnabled(true);
+      ui->lineEdit_03->setEnabled(true);
+      ui->lineEdit_10->setEnabled(true);
+      ui->lineEdit_11->setEnabled(true);
+      ui->lineEdit_12->setEnabled(true);
+      ui->lineEdit_13->setEnabled(true);
+      ui->lineEdit_20->setEnabled(true);
+      ui->lineEdit_21->setEnabled(true);
+      ui->lineEdit_22->setEnabled(true);
+      ui->lineEdit_23->setEnabled(true);
+      ui->lineEdit_30->setEnabled(true);
+      ui->lineEdit_31->setEnabled(true);
+      ui->lineEdit_32->setEnabled(true);
+      ui->lineEdit_33->setEnabled(true);
     } else {
       ui->labelTransformationMatrix->setDisabled(true);
-      ui->doubleSpinBox_11->setDisabled(true);
-      ui->doubleSpinBox_12->setDisabled(true);
-      ui->doubleSpinBox_13->setDisabled(true);
-      ui->doubleSpinBox_14->setDisabled(true);
-      ui->doubleSpinBox_21->setDisabled(true);
-      ui->doubleSpinBox_22->setDisabled(true);
-      ui->doubleSpinBox_23->setDisabled(true);
-      ui->doubleSpinBox_24->setDisabled(true);
-      ui->doubleSpinBox_31->setDisabled(true);
-      ui->doubleSpinBox_32->setDisabled(true);
-      ui->doubleSpinBox_33->setDisabled(true);
-      ui->doubleSpinBox_34->setDisabled(true);
+      ui->lineEdit_00->setDisabled(true);
+      ui->lineEdit_01->setDisabled(true);
+      ui->lineEdit_02->setDisabled(true);
+      ui->lineEdit_03->setDisabled(true);
+      ui->lineEdit_10->setDisabled(true);
+      ui->lineEdit_11->setDisabled(true);
+      ui->lineEdit_12->setDisabled(true);
+      ui->lineEdit_13->setDisabled(true);
+      ui->lineEdit_20->setDisabled(true);
+      ui->lineEdit_21->setDisabled(true);
+      ui->lineEdit_22->setDisabled(true);
+      ui->lineEdit_23->setDisabled(true);
+      ui->lineEdit_30->setDisabled(true);
+      ui->lineEdit_31->setDisabled(true);
+      ui->lineEdit_32->setDisabled(true);
+      ui->lineEdit_33->setDisabled(true);
     }
 }
