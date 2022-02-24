@@ -98,6 +98,13 @@ void MainWindow::on_pushButtonAnalyze_clicked()
     param.transformMatrix[3][2] = ui->lineEdit_32->text().toDouble(&ok);
     param.transformMatrix[3][3] = ui->lineEdit_33->text().toDouble(&ok);
   }
+
+  if (ui->checkBoxDivision->isChecked()) {
+    param.divisionEnabled = true;
+  } else {
+    param.divisionEnabled = false;
+  }
+
   m_analyzer->param = param;
   QtConcurrent::run(this->m_analyzer, &Analyzer::analyze);
 }
@@ -132,8 +139,6 @@ void MainWindow::on_pushButtonStudentModel_clicked()
   QString filename = QFileDialog::getOpenFileName(this, "Open Student Model", QDir::homePath());
   if (filename != "") {
     param.studentModel = filename.toStdString();
-    QString cmd = QString("MeshLab\\meshlab.exe %1").arg(filename);
-    QFuture<int> future = QtConcurrent::run(system, cmd.toStdString().c_str());
     ui->lineEditStudentModel->setText(filename);
   }
 }
@@ -155,25 +160,6 @@ void MainWindow::on_pushButtonStudentMidpoint_clicked()
     ui->lineEditStudentMidpoint->setText(filename);
   }
 }
-
-void MainWindow::on_pushButtonStudentNeighborToothMarginPoints1_clicked()
-{
-  QString filename = QFileDialog::getOpenFileName(this, "Open Student Neighbor Tooth Margin Points (1)", QDir::homePath());
-  if (filename != "") {
-    param.studentNeighborToothMarginPoint1 = filename.toStdString();
-    ui->lineEditStudentNeighborToothMarginPoints1->setText(filename);
-  }
-}
-
-void MainWindow::on_pushButtonStudentNeighborToothMarginPoints2_clicked()
-{
-  QString filename = QFileDialog::getOpenFileName(this, "Open Student Neighbor Tooth Margin Points (2)", QDir::homePath());
-  if (filename != "") {
-    param.studentNeighborToothMarginPoint2 = filename.toStdString();
-    ui->lineEditStudentNeighborToothMarginPoints2->setText(filename);
-  }
-}
-
 
 void MainWindow::on_pushButtonStudentMarginPoints_clicked()
 {
@@ -217,27 +203,7 @@ void MainWindow::on_pushButtonOriginalModel_clicked()
   QString filename = QFileDialog::getOpenFileName(this, "Open Original Model", QDir::homePath());
   if (filename != "") {
     param.originalModel = filename.toStdString();
-    QString cmd = QString("MeshLab\\meshlab.exe %1").arg(filename);
-    QFuture<int> future = QtConcurrent::run(system, cmd.toStdString().c_str());
     ui->lineEditOriginalModel->setText(filename);
-  }
-}
-
-void MainWindow::on_pushButtonOriginalNeighborToothMarginPoints1_clicked()
-{
-  QString filename = QFileDialog::getOpenFileName(this, "Open Original Neighbor Tooth Margin Points (1)", QDir::homePath());
-  if (filename != "") {
-    param.originalNeighborToothMarginPoint1 = filename.toStdString();
-    ui->lineEditOriginalNeighborToothMarginPoints1->setText(filename);
-  }
-}
-
-void MainWindow::on_pushButtonOriginalNeighborToothMarginPoints2_clicked()
-{
-  QString filename = QFileDialog::getOpenFileName(this, "Open Original Neighbor Tooth Margin Points (2)", QDir::homePath());
-  if (filename != "") {
-    param.originalNeighborToothMarginPoint2 = filename.toStdString();
-    ui->lineEditOriginalNeighborToothMarginPoints2->setText(filename);
   }
 }
 
@@ -279,5 +245,24 @@ void MainWindow::on_radioButtonManualAlignment_toggled(bool checked)
       ui->lineEdit_31->setDisabled(true);
       ui->lineEdit_32->setDisabled(true);
       ui->lineEdit_33->setDisabled(true);
+    }
+}
+
+void MainWindow::on_checkBoxDivision_toggled(bool checked)
+{
+    if (checked) {
+      ui->labelStudentCenter->setEnabled(true);
+      ui->labelStudentMidpoint->setEnabled(true);
+      ui->lineEditStudentCenter->setEnabled(true);
+      ui->lineEditStudentMidpoint->setEnabled(true);
+      ui->pushButtonStudentCenter->setEnabled(true);
+      ui->pushButtonStudentMidpoint->setEnabled(true);
+    } else {
+      ui->labelStudentCenter->setDisabled(true);
+      ui->labelStudentMidpoint->setDisabled(true);
+      ui->lineEditStudentCenter->setDisabled(true);
+      ui->lineEditStudentMidpoint->setDisabled(true);
+      ui->pushButtonStudentCenter->setDisabled(true);
+      ui->pushButtonStudentMidpoint->setDisabled(true);
     }
 }

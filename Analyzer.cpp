@@ -91,20 +91,23 @@ void Analyzer::init()
   /* compute alignment matrix
    * and align student model with original model */
   K::Aff_transformation_3 transformation = this->compute_alignment_matrix();
-  std::cout << transformation << std::endl;
+  if (debug) {
+    std::cout << "transformation" << transformation << std::endl;
+  }
   CGAL::Polygon_mesh_processing::transform(transformation, this->student_model);
   CGAL::Polygon_mesh_processing::transform(transformation, this->student_model_poly);
 
-  // write transformed model to output
-  std::string output_name = "aligned1.ply";
-  std::ofstream out(output_name);
-  CGAL::write_ply(out, student_model);
+  if (debug) {
+    // write transformed model to output
+    std::string output_name = "aligned1.ply";
+    std::ofstream out(output_name);
+    CGAL::write_ply(out, student_model);
+  }
 
   student_tree.rebuild(faces(this->student_model_poly).first, faces(this->student_model_poly).second, this->student_model_poly);
   original_tree.rebuild(faces(this->original_model_poly).first, faces(this->original_model_poly).second, this->original_model_poly);
 
-
-  if (division_enabled) {
+  if (param.divisionEnabled) {
     std::vector<mycode::Point_3> temp;
     readpp(temp, param.studentCenterPoint);
     if (temp.size() != 1) {
@@ -148,70 +151,30 @@ K::Aff_transformation_3 Analyzer::compute_alignment_matrix()
         param.transformMatrix[1][0],param.transformMatrix[1][1],param.transformMatrix[1][2],param.transformMatrix[1][3],
         param.transformMatrix[2][0],param.transformMatrix[2][1],param.transformMatrix[2][2],param.transformMatrix[2][3]);
   } else {
-    std::vector<Pwn> student_pwns, original_pwns;
-    select_neighboring_tooth_pwn(original_model, original_pwns, param.originalNeighborToothMarginPoint1, param.originalNeighborToothMarginPoint2);
-    select_neighboring_tooth_pwn(student_model, student_pwns, param.studentNeighborToothMarginPoint1, param.studentNeighborToothMarginPoint2);
+    std::vector<Pwn> pwns1, pwns2;
+    std::ifstream input(param.studentModel);
+    CGAL::read_off_points(input, std::back_inserter(pwns1),
+                CGAL::parameters::point_map (Point_map()).
+                normal_map (Normal_map()));
+    input.close();
 
-    std::cout << "student: " << student_pwns.size() << std::endl;
-    std::cout << "original: " << original_pwns.size() << std::endl;
-
+    input.open(param.originalModel);
+    CGAL::read_off_points(input, std::back_inserter(pwns2),
+                CGAL::parameters::point_map (Point_map()).
+                normal_map (Normal_map()));
+    input.close();
     K::Aff_transformation_3 res1 =
         std::get<0>(
-            CGAL::OpenGR::compute_registration_transformation(original_pwns, student_pwns,
-                                                              params::point_map(Point_map()).normal_map(Normal_map())
-                                                              .number_of_samples(5000)
-                                                              .overlap(1),
+            CGAL::OpenGR::compute_registration_transformation(pwns1, pwns2,
+                                                              params::point_map(Point_map()).normal_map(Normal_map()),
                                                               params::point_map(Point_map()).normal_map(Normal_map())));
 
     K::Aff_transformation_3 res2 =
         std::get<0>(
-            CGAL::pointmatcher::compute_registration_transformation(original_pwns, student_pwns,
+            CGAL::pointmatcher::compute_registration_transformation(pwns1, pwns2,
                                                                     params::point_map(Point_map()).normal_map(Normal_map()),
                                                                     params::point_map(Point_map()).normal_map(Normal_map()).transformation(res1)));
-
-    return res1;
-  }
-}
-
-void Analyzer::select_neighboring_tooth_pwn(mycode::Mesh &m, std::vector<Pwn> &pwns, string neighboringToothMargin1, string neighboringToothMargin2)
-{
-  std::vector<mycode::Point_3> margin_points_1, margin_points_2;
-  readpp(margin_points_1, neighboringToothMargin1);
-  readpp(margin_points_2, neighboringToothMargin2);
-  /* calculate the mean value of margin_1 */
-  double avg_y1 = 0;
-  int count = 0;
-  for (auto p = margin_points_1.begin(); p != margin_points_1.end(); p++)
-  {
-    avg_y1 += p->y();
-    count++;
-  }
-  avg_y1 /= count;
-  std::vector<mycode::Segment_2> margin_lines_1;
-  construct_lines(margin_points_1, margin_lines_1);
-
-  /* calculate the mean value of margin_2 */
-  double avg_y2 = 0;
-  count = 0;
-  for (auto p = margin_points_2.begin(); p != margin_points_2.end(); p++)
-  {
-    avg_y2 += p->y();
-    count++;
-  }
-  avg_y2 /= count;
-  std::vector<mycode::Segment_2> margin_lines_2;
-  construct_lines(margin_points_2, margin_lines_2);
-
-  for (vertex_descriptor vi : m.vertices())
-  {
-    mycode::Point_3 p = m.point(vi);
-    mycode::Point_2 point(p.x(), p.z());
-
-    if ((within_lines(point, margin_lines_1) && (std::abs(p.y() - avg_y1) < 10)) ||
-        (within_lines(point, margin_lines_2) && (std::abs(p.y() - avg_y2) < 10)))
-    {
-      pwns.push_back(std::pair<mycode::Point_3, mycode::Vector_3>(mycode::Point_3(p.x(), p.y(), p.z()), mycode::Vector_3(0, 0, 0)));
-    }
+    return res2;
   }
 }
 
@@ -328,7 +291,7 @@ void Analyzer::compute_taper()
     mycode::FT toc = CGAL::approximate_angle(v1, v2);
     mycode::FT taper = toc/2;
 
-    if (division_enabled) {
+    if (param.divisionEnabled) {
       std::cerr << "checking region" << std::endl;
       switch (region_of(target_point)) {
         case Lingual:
@@ -353,7 +316,7 @@ void Analyzer::compute_taper()
   emit msgToConsole("=============");
   emit msgToConsole("=== TAPER ===");
   emit msgToConsole("=============");
-  if (division_enabled) {
+  if (param.divisionEnabled) {
     emit msgToConsole("=== Lingual ===");
     report_stats(&student_result.taper[0], tapers_lingual);
     emit msgToConsole("=== Buccal ===");
@@ -381,7 +344,7 @@ void Analyzer::compute_occlusal_reduction()
   for (auto& vi : points_on_occlusal) {
     mycode::Point_3 p = student_model.point(vi);
     mycode::FT dist = CGAL::sqrt(original_tree.squared_distance(p));
-    if (division_enabled) {
+    if (param.divisionEnabled) {
       switch (region_of(p)) {
         case Lingual:
           occlusal_reductions_lingual.push_back(dist);
@@ -405,7 +368,7 @@ void Analyzer::compute_occlusal_reduction()
   emit msgToConsole("==========================");
   emit msgToConsole("=== OCCLUSAL REDUCTION ===");
   emit msgToConsole("==========================");
-  if (division_enabled) {
+  if (param.divisionEnabled) {
     emit msgToConsole("=== Lingual ===");
     report_stats(&student_result.occlusal_reduction[0], occlusal_reductions_lingual);
     emit msgToConsole("=== Buccal ===");
@@ -433,7 +396,7 @@ void Analyzer::compute_margin_depth()
     mycode::Point_3 student_point = student_tree.closest_point(point_half_mm_above);
     mycode::Point_3 original_point = original_tree.closest_point(point_half_mm_above);
     mycode::FT dist = CGAL::sqrt(CGAL::squared_distance(student_point, original_point));
-    if (division_enabled) {
+    if (param.divisionEnabled) {
       switch (region_of(p)) {
         case Lingual:
           margin_depths_lingual.push_back(dist);
@@ -457,7 +420,7 @@ void Analyzer::compute_margin_depth()
   emit msgToConsole("====================");
   emit msgToConsole("=== MARGIN DEPTH ===");
   emit msgToConsole("====================");
-  if (division_enabled) {
+  if (param.divisionEnabled) {
     emit msgToConsole("=== Lingual ===");
     report_stats(&student_result.margin_depth[0], margin_depths_lingual);
     emit msgToConsole("=== Buccal ===");
@@ -473,61 +436,117 @@ void Analyzer::compute_margin_depth()
 
 void Analyzer::compute_gingival_extension()
 {
-  std::vector<mycode::FT> gingival_extension_lingual;
-  std::vector<mycode::FT> gingival_extension_buccal;
-  std::vector<mycode::FT> gingival_extension_mesial;
-  std::vector<mycode::FT> gingival_extension_distal;
+  std::vector<mycode::FT> y_mp_lingual;
+  std::vector<mycode::FT> y_mp_buccal;
+  std::vector<mycode::FT> y_mp_mesial;
+  std::vector<mycode::FT> y_mp_distal;
 
-  std::vector<mycode::FT> gingival_extension;
+  std::vector<mycode::FT> y_gp_lingual;
+  std::vector<mycode::FT> y_gp_buccal;
+  std::vector<mycode::FT> y_gp_mesial;
+  std::vector<mycode::FT> y_gp_distal;
 
-  for (auto& target_point : margin_points) {
-    mycode::FT min_angle = 180;
-    mycode::Point_3 vertical_point;
-    for (auto gp : gingiva_points)
-    {
-      mycode::FT angle = CGAL::approximate_angle(mycode::Vector_3(gp, target_point), mycode::Vector_3(0, 1, 0));
-      if (angle < min_angle)
-      {
-        vertical_point = gp;
-        min_angle = angle;
-      }
-    }
-    mycode::FT dist = CGAL::sqrt(CGAL::squared_distance(vertical_point, target_point));
-    if (division_enabled) {
-      switch (region_of(target_point)) {
+  std::vector<mycode::FT> y_mp;
+  std::vector<mycode::FT> y_gp;
+
+  for (auto& mp : margin_points) {
+    if (param.divisionEnabled) {
+      switch (region_of(mp)) {
         case Lingual:
-          gingival_extension_lingual.push_back(dist);
+          y_mp_lingual.push_back(mp.y());
           break;
         case Buccal:
-          gingival_extension_buccal.push_back(dist);
+          y_mp_buccal.push_back(mp.y());
           break;
         case Mesial:
-          gingival_extension_mesial.push_back(dist);
+          y_mp_mesial.push_back(mp.y());
           break;
         case Distal:
-          gingival_extension_distal.push_back(dist);
+          y_mp_distal.push_back(mp.y());
           break;
       }
     } else {
-      gingival_extension.push_back(dist);
+      y_mp.push_back(mp.y());
+    }
+  }
+
+  for (auto& gp : gingiva_points) {
+    if (param.divisionEnabled) {
+      switch (region_of(gp)) {
+        case Lingual:
+          y_gp_lingual.push_back(gp.y());
+          break;
+        case Buccal:
+          y_gp_buccal.push_back(gp.y());
+          break;
+        case Mesial:
+          y_gp_mesial.push_back(gp.y());
+          break;
+        case Distal:
+          y_gp_distal.push_back(gp.y());
+          break;
+      }
+    } else {
+      y_gp.push_back(gp.y());
     }
   }
 
   /* report stats to the console */
+
+  mycode::FT average_y_mp, average_y_gp, average_gingival_extension, max_gingival_extension, min_gingival_extension;
+
   emit msgToConsole("==========================");
   emit msgToConsole("=== GINGIVAL EXTENSION ===");
   emit msgToConsole("==========================");
-  if (division_enabled) {
+  if (param.divisionEnabled) {
     emit msgToConsole("=== Lingual ===");
-    report_stats(&student_result.gingival_extension[0], gingival_extension_lingual);
+    average_y_mp = accumulate(y_mp_lingual.begin(), y_mp_lingual.end(), 0.0)/y_mp_lingual.size();
+    average_y_gp = accumulate(y_gp_lingual.begin(), y_gp_lingual.end(), 0.0)/y_gp_lingual.size();
+    average_gingival_extension = average_y_mp - average_y_gp;
+//    max_gingival_extension = *max_element(y_mp_lingual.begin(), y_mp_lingual.end()) - *min_element(y_gp_lingual.begin(), y_gp_lingual.end());
+//    min_gingival_extension = *min_element(y_mp_lingual.begin(), y_mp_lingual.end()) - *max_element(y_gp_lingual.begin(), y_gp_lingual.end());
+    emit msgToConsole(QString("average = %1").arg(average_gingival_extension));
+//    emit msgToConsole(QString("max = %1").arg(max_gingival_extension));
+//    emit msgToConsole(QString("min = %1").arg(min_gingival_extension));
+
     emit msgToConsole("=== Buccal ===");
-    report_stats(&student_result.gingival_extension[1], gingival_extension_buccal);
+    average_y_mp = accumulate(y_mp_buccal.begin(), y_mp_buccal.end(), 0.0)/y_mp_buccal.size();
+    average_y_gp = accumulate(y_gp_buccal.begin(), y_gp_buccal.end(), 0.0)/y_gp_buccal.size();
+    average_gingival_extension = average_y_mp - average_y_gp;
+//    max_gingival_extension = *max_element(y_mp_buccal.begin(), y_mp_buccal.end()) - *min_element(y_gp_buccal.begin(), y_gp_buccal.end());
+//    min_gingival_extension = *min_element(y_mp_buccal.begin(), y_mp_buccal.end()) - *max_element(y_gp_buccal.begin(), y_gp_buccal.end());
+    emit msgToConsole(QString("average = %1").arg(average_gingival_extension));
+//    emit msgToConsole(QString("max = %1").arg(max_gingival_extension));
+//    emit msgToConsole(QString("min = %1").arg(min_gingival_extension));
+
     emit msgToConsole("=== Mesial ===");
-    report_stats(&student_result.gingival_extension[2], gingival_extension_mesial);
+    average_y_mp = accumulate(y_mp_mesial.begin(), y_mp_mesial.end(), 0.0)/y_mp_mesial.size();
+    average_y_gp = accumulate(y_gp_mesial.begin(), y_gp_mesial.end(), 0.0)/y_gp_mesial.size();
+    average_gingival_extension = average_y_mp - average_y_gp;
+//    max_gingival_extension = *max_element(y_mp_mesial.begin(), y_mp_mesial.end()) - *min_element(y_gp_mesial.begin(), y_gp_mesial.end());
+//    min_gingival_extension = *min_element(y_mp_mesial.begin(), y_mp_mesial.end()) - *max_element(y_gp_mesial.begin(), y_gp_mesial.end());
+    emit msgToConsole(QString("average = %1").arg(average_gingival_extension));
+//    emit msgToConsole(QString("max = %1").arg(max_gingival_extension));
+//    emit msgToConsole(QString("min = %1").arg(min_gingival_extension));
+
     emit msgToConsole("=== Distal ===");
-    report_stats(&student_result.gingival_extension[3], gingival_extension_distal);
+    average_y_mp = accumulate(y_mp_distal.begin(), y_mp_distal.end(), 0.0)/y_mp_distal.size();
+    average_y_gp = accumulate(y_gp_distal.begin(), y_gp_distal.end(), 0.0)/y_gp_distal.size();
+    average_gingival_extension = average_y_mp - average_y_gp;
+//    max_gingival_extension = *max_element(y_mp_distal.begin(), y_mp_distal.end()) - *min_element(y_gp_distal.begin(), y_gp_distal.end());
+//    min_gingival_extension = *min_element(y_mp_distal.begin(), y_mp_distal.end()) - *max_element(y_gp_distal.begin(), y_gp_distal.end());
+    emit msgToConsole(QString("average = %1").arg(average_gingival_extension));
+//    emit msgToConsole(QString("max = %1").arg(max_gingival_extension));
+//    emit msgToConsole(QString("min = %1").arg(min_gingival_extension));
   } else {
-    report_stats(&student_result.gingival_extension[0], gingival_extension);
+    average_y_mp = accumulate(y_mp.begin(), y_mp.end(), 0.0)/y_mp.size();
+    average_y_gp = accumulate(y_gp.begin(), y_gp.end(), 0.0)/y_gp.size();
+    average_gingival_extension = average_y_mp - average_y_gp;
+//    max_gingival_extension = *max_element(y_mp.begin(), y_mp.end()) - *min_element(y_gp.begin(), y_gp.end());
+//    min_gingival_extension = *min_element(y_mp.begin(), y_mp.end()) - *max_element(y_gp.begin(), y_gp.end());
+    emit msgToConsole(QString("average = %1").arg(average_gingival_extension));
+//    emit msgToConsole(QString("max = %1").arg(max_gingival_extension));
+//    emit msgToConsole(QString("min = %1").arg(min_gingival_extension));
   }
 }
 
@@ -551,7 +570,7 @@ void Analyzer::compute_shoulder_width()
         min_dist = dist;
       }
     }
-    if (division_enabled) {
+    if (param.divisionEnabled) {
       switch (region_of(ap)) {
         case Lingual:
           shoulder_widths_lingual.push_back(min_dist);
@@ -575,7 +594,7 @@ void Analyzer::compute_shoulder_width()
   emit msgToConsole("======================");
   emit msgToConsole("=== SHOULDER WIDTH ===");
   emit msgToConsole("======================");
-  if (division_enabled) {
+  if (param.divisionEnabled) {
     emit msgToConsole("=== Lingual ===");
     report_stats(&student_result.shoulder_width[0], shoulder_widths_lingual);
     emit msgToConsole("=== Buccal ===");
@@ -612,7 +631,7 @@ void Analyzer::compute_axial_wall_height()
       }
     }
     mycode::FT height = CGAL::sqrt(CGAL::squared_distance(op, vertical_point));
-    if (division_enabled) {
+    if (param.divisionEnabled) {
       switch (region_of(op)) {
         case Lingual:
           axial_wall_height_lingual.push_back(height);
@@ -636,7 +655,7 @@ void Analyzer::compute_axial_wall_height()
   emit msgToConsole("=========================");
   emit msgToConsole("=== AXIAL WALL HEIGHT ===");
   emit msgToConsole("=========================");
-  if (division_enabled) {
+  if (param.divisionEnabled) {
     emit msgToConsole("=== Lingual ===");
     report_stats(&student_result.axial_wall_height[0], axial_wall_height_lingual);
     emit msgToConsole("=== Buccal ===");
@@ -886,7 +905,7 @@ void Analyzer::select_occlusal_points(std::unordered_set<mycode::vertex_descript
     mycode::Point_3 p = student_model.point(vi);
     mycode::Point_2 point(p.x(), p.z());
 
-    if (within_lines(point, occlusal_lines) && (std::abs(p.y() - occlusal_avg_y) < 2))
+    if (within_lines(point, occlusal_lines) && (std::abs(p.y() - occlusal_avg_y) < 2)) /* This '2' is pretty random, not sure how to select points with similar height as the occlusal line */
     {
       vertexSet.insert(vi);
     }

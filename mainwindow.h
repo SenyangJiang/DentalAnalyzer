@@ -37,10 +37,6 @@ private slots:
 
     void on_pushButtonStudentMidpoint_clicked();
 
-    void on_pushButtonStudentNeighborToothMarginPoints1_clicked();
-
-    void on_pushButtonStudentNeighborToothMarginPoints2_clicked();
-
     void on_pushButtonStudentMarginPoints_clicked();
 
     void on_pushButtonStudentAxialPoints_clicked();
@@ -51,13 +47,11 @@ private slots:
 
     void on_pushButtonOriginalModel_clicked();
 
-    void on_pushButtonOriginalNeighborToothMarginPoints1_clicked();
-
-    void on_pushButtonOriginalNeighborToothMarginPoints2_clicked();
-
     void on_pushButtonStudentFolder_clicked();
 
     void on_radioButtonManualAlignment_toggled(bool checked);
+
+    void on_checkBoxDivision_toggled(bool checked);
 
 private:
     Ui::MainWindow *ui;

@@ -19,6 +19,7 @@ struct Parameter {
   string originalNeighborToothMarginPoint1;
   string originalNeighborToothMarginPoint2;
   bool useManualTransform;
+  bool divisionEnabled;
   double transformMatrix[4][4];
 };
 

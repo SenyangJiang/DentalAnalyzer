@@ -34,9 +34,6 @@ private:
     // align student model with original model
     mycode::K::Aff_transformation_3 compute_alignment_matrix();
 
-    // select neighboring teeth in the form of (Point,Normal) pair
-    void select_neighboring_tooth_pwn(mycode::Mesh &m, std::vector<mycode::Pwn> &pwns, string neighboringToothMargin1, string neighboringToothMargin2);
-
     // constructing 2d lines from points
     void construct_lines(std::vector<mycode::Point_3> &points, std::vector<mycode::Segment_2> &lines);
 
@@ -85,7 +82,7 @@ private:
     // give feedback by comparing value against ruberic
     void feedback();
 
-    bool division_enabled = false; /* debugging variable for disabling division of the tooth into 4 sections */
+    bool debug = false; /* debug flag for internal testing */
 
     mycode::Mesh student_model;
     mycode::Mesh original_model;
