@@ -207,6 +207,16 @@ void MainWindow::on_pushButtonOriginalModel_clicked()
   }
 }
 
+void MainWindow::on_pushButtonCSVExportPath_clicked()
+{
+  QString filename = QFileDialog::getOpenFileName(this, "Select Export Path", QDir::homePath());
+  if (filename != "") {
+    param.originalModel = filename.toStdString();
+    ui->lineEditCSVExportPath->setText(filename);
+  }
+}
+
+
 void MainWindow::on_radioButtonManualAlignment_toggled(bool checked)
 {
     if (checked) {
@@ -265,4 +275,17 @@ void MainWindow::on_checkBoxDivision_toggled(bool checked)
       ui->pushButtonStudentCenter->setDisabled(true);
       ui->pushButtonStudentMidpoint->setDisabled(true);
     }
+}
+
+void MainWindow::on_checkBoxCSVExport_toggled(bool checked)
+{
+  if (checked) {
+    ui->labelCSVExport->setEnabled(true);
+    ui->lineEditCSVExportPath->setEnabled(true);
+    ui->pushButtonCSVExportPath->setEnabled(true);
+  } else {
+    ui->labelCSVExport->setDisabled(true);
+    ui->lineEditCSVExportPath->setDisabled(true);
+    ui->pushButtonCSVExportPath->setDisabled(true);
+  }
 }
