@@ -20,6 +20,10 @@ public:
 
     Parameter param;
 
+    bool status_done;
+
+    Result student_result;
+
 signals:
     void msgToConsole(QString msg);
 
@@ -76,8 +80,8 @@ private:
     // select vertices on tooth
     void select_tooth_points(std::unordered_set<mycode::vertex_descriptor> &vertexSet);
 
-    // report avg, min, max of an array of numbers
-    void report_stats(double* avg, const std::vector<mycode::FT> &values);
+    // report avg, min, max of an array of numbers, and record them in stats struct
+    void report_stats(Stats* stats, const std::vector<mycode::FT> &values);
 
     // give feedback by comparing value against ruberic
     void feedback();
@@ -96,7 +100,5 @@ private:
     std::vector<mycode::Point_3> axial_points;
     std::vector<mycode::Point_3> margin_points;
     std::vector<mycode::Point_3> gingiva_points;
-
-    Result student_result;
 };
 #endif

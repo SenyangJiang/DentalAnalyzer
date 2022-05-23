@@ -49,14 +49,12 @@ private slots:
 
     void on_pushButtonStudentFolder_clicked();
 
-    void on_pushButtonCSVExportPath_clicked();
-
     void on_radioButtonManualAlignment_toggled(bool checked);
 
     void on_checkBoxDivision_toggled(bool checked);
 
-    void on_checkBoxCSVExport_toggled(bool checked);
-
+    // export results as csv
+    void on_pushButtonExport_clicked();
 
 private:
     Ui::MainWindow *ui;

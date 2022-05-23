@@ -129,6 +129,7 @@ set(PROJECT_SOURCES
         audiorecorder.ui
         result.h
         parameter.h
+        result.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

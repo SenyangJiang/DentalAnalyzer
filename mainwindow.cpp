@@ -25,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
   QObject::connect(m_analyzer,&Analyzer::msgToConsole,this,&MainWindow::updateConsole);
   QObject::connect(m_analyzer, &Analyzer::updateProgressBar, this, &MainWindow::setProgressBar);
   QObject::connect(m_analyzer, &Analyzer::alertToWindow, this, &MainWindow::CreateAlert);
+  m_analyzer->status_done = false;
 }
 
 MainWindow::~MainWindow()
@@ -207,16 +208,6 @@ void MainWindow::on_pushButtonOriginalModel_clicked()
   }
 }
 
-void MainWindow::on_pushButtonCSVExportPath_clicked()
-{
-  QString filename = QFileDialog::getOpenFileName(this, "Select Export Path", QDir::homePath());
-  if (filename != "") {
-    param.originalModel = filename.toStdString();
-    ui->lineEditCSVExportPath->setText(filename);
-  }
-}
-
-
 void MainWindow::on_radioButtonManualAlignment_toggled(bool checked)
 {
     if (checked) {
@@ -277,15 +268,114 @@ void MainWindow::on_checkBoxDivision_toggled(bool checked)
     }
 }
 
-void MainWindow::on_checkBoxCSVExport_toggled(bool checked)
+void MainWindow::on_pushButtonExport_clicked()
 {
-  if (checked) {
-    ui->labelCSVExport->setEnabled(true);
-    ui->lineEditCSVExportPath->setEnabled(true);
-    ui->pushButtonCSVExportPath->setEnabled(true);
-  } else {
-    ui->labelCSVExport->setDisabled(true);
-    ui->lineEditCSVExportPath->setDisabled(true);
-    ui->pushButtonCSVExportPath->setDisabled(true);
+  if (!m_analyzer->status_done) {
+    QMessageBox::information(this, tr("Export Error"),
+                             tr("Results not available"));
+    return;
+  }
+  QString fileName = QFileDialog::getSaveFileName(this, "Export Results To", QDir::homePath(), tr("csv files (*.csv);;All Files (*)"));
+  if (fileName.isEmpty()) {
+      return;
+    }
+  else {
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+      QMessageBox::information(this, tr("Unable to open file"),
+                               file.errorString());
+      return;
+    }
+    QTextStream out(&file);
+
+    /* student name */
+    out << "Name: " << ui->lineEditStudentName->text() << ",";
+
+    /* stats headers */
+    out << "Max," << "Min," << "Avg," << "\n";
+
+    /* metrics */
+    if (m_analyzer->param.divisionEnabled) {
+      QString region_map[4] = {"Lingual", "Buccal", "Mesial", "Distal"};
+      for (int i = 0; i < 4; i++) {
+        out << "Shoulder Width (" << region_map[i] << "),";
+        out << m_analyzer->student_result.shoulder_width_stats[i].to_csv();
+      }
+      for (int i = 0; i < 4; i++) {
+        out << "Taper (" << region_map[i] << "),";
+        out << m_analyzer->student_result.taper_stats[i].to_csv();
+      }
+      for (int i = 0; i < 4; i++) {
+        out << "Axial Wall Height (" << region_map[i] << "),";
+        out << m_analyzer->student_result.axial_wall_height_stats[i].to_csv();
+      }
+      for (int i = 0; i < 4; i++) {
+        out << "Margin Depth (" << region_map[i] << "),";
+        out << m_analyzer->student_result.margin_depth_stats[i].to_csv();
+      }
+      for (int i = 0; i < 4; i++) {
+        out << "Occlusal Reduction (" << region_map[i] << "),";
+        out << m_analyzer->student_result.occlusal_reduction_stats[i].to_csv();
+      }
+      for (int i = 0; i < 4; i++) {
+        out << "Gingival Extension (" << region_map[i] << "),";
+        out << m_analyzer->student_result.gingival_extension_stats[i].to_csv();
+      }
+    } else {
+      out << "Shoulder Width,";
+      out << m_analyzer->student_result.shoulder_width_stats[0].to_csv();
+      out << "Taper,";
+      out << m_analyzer->student_result.taper_stats[0].to_csv();
+      out << "Axial Wall Height,";
+      out << m_analyzer->student_result.axial_wall_height_stats[0].to_csv();
+      out << "Margin Depth,";
+      out << m_analyzer->student_result.margin_depth_stats[0].to_csv();
+      out << "Occlusal Reduction,";
+      out << m_analyzer->student_result.occlusal_reduction_stats[0].to_csv();
+      out << "Gingival Extension,";
+      out << m_analyzer->student_result.gingival_extension_stats[0].to_csv();
+    }
+
+    /* data points */
+    out << "\n";
+    out << "Metric: Shoulder Width\n";
+    out << "Point,";
+    out << points_to_csv(m_analyzer->student_result.shoulder_width_data);
+    out << "Value,";
+    out << values_to_csv(m_analyzer->student_result.shoulder_width_data);
+
+    out << "Metric: Taper\n";
+    out << "Point,";
+    out << points_to_csv(m_analyzer->student_result.taper_data);
+    out << "Value,";
+    out << values_to_csv(m_analyzer->student_result.taper_data);
+
+    out << "Metric: Axial Wall Height\n";
+    out << "Point,";
+    out << points_to_csv(m_analyzer->student_result.axial_wall_height_data);
+    out << "Value,";
+    out << values_to_csv(m_analyzer->student_result.axial_wall_height_data);
+
+    out << "Metric: Margin Depth\n";
+    out << "Point,";
+    out << points_to_csv(m_analyzer->student_result.margin_depth_data);
+    out << "Value,";
+    out << values_to_csv(m_analyzer->student_result.margin_depth_data);
+
+    out << "Metric: Occlusal Reduction\n";
+    out << "Point,";
+    out << points_to_csv(m_analyzer->student_result.occlusal_reduction_data);
+    out << "Value,";
+    out << values_to_csv(m_analyzer->student_result.occlusal_reduction_data);
+
+    out << "Metric: Gingival Extension\n";
+    out << "Point,";
+    out << points_to_csv(m_analyzer->student_result.gingival_extension_data);
+    out << "Value,";
+    out << values_to_csv(m_analyzer->student_result.gingival_extension_data);
+
+    file.flush();
+    file.close();
   }
 }
+
