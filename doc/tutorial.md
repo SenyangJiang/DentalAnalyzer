@@ -60,13 +60,13 @@
 
     Freeze (Filters -> Mesh Layer -> Matrix: Freeze Current Matrix) and save the aligned student preps as **.OFF files**.
 
-4. Then we need to mark the lines (gingiva line, margin line, axial line, occlusal line) on the **student prep model**. These lines are required as input to Dental Analyzer. We will mark margin lines on the student prep model as an example.
+4. Then we need to mark the lines (gingiva line, margin line, axial line, occlusal line) on the **transformed student prep model** we saved on step 3. These lines are required as input to Dental Analyzer. We will mark margin lines on the student prep model as an example.
 Meshlab does not have tools to mark lines on the model. To get around this, we will mark a set of points on the model using the **PickPoints** ![pickpoint](./tutorial_assets/pickpoint.png) utility. You can find this tool near the middle of the tool bar in the MeshLab UI.
 Open the .OFF file we saved for the student prep model in step 4, click on the PickPoints utility in the tool bar, a window should open on the upper-right corner of the screen.
 
     ![Picture 17](./tutorial_assets/Picture13.png)
 
-    Untick the ‘Show Normal’ option at the bottom of the window, since we are not interested in normal of the points. Use right click to pick points, and if you want to move or rotate the model, use ‘Esc’ to toggle between PickPoints mode and normal mode. It is important that you pick points in a way that current point is next to previous point, i.e. you should pick points sequentially in space. 
+    Untick the ‘Show Normal’ option at the bottom of the window, since we are not interested in normal of the points. Use right click to pick points, and if you want to move or rotate the model, use ‘Esc’ to toggle between PickPoints mode and view mode. **It is important that you pick points in a way that current point is next to previous point, i.e. you should pick points sequentially in space.**
 
     ![Picture 18](./tutorial_assets/Picture14.png)
 
@@ -98,11 +98,11 @@ If you want to divide the crown prep into 4 regions (Lingual, Buccal, Mesial and
 Illustration of midpoint and center is as follows. They are used to determine the direction of a tooth, i.e. Lingual, Buccal, Mesial, Distal.
 ![Picture 16](./tutorial_assets/Picture16.png)
 
-Below is an example after filling the inputs.
+Below is an example after filling in the inputs.
 
 ![Picture 17](./tutorial_assets/Picture17.png)
 
-If you are finished with inputting the files, click on ‘Analyze’ to start the analysis, the results should be available in the ‘Output’ section.
+If you are finished with inputting the files, click on ‘Analyze’, the results should be available in the ‘Output’ section.
 
 ![Picture 18](./tutorial_assets/Picture18.png)
 
