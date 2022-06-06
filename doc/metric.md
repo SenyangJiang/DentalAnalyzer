@@ -3,13 +3,13 @@
 - Per-vertex value on the axial line
 - For each point $P_2$ on the axial line, find the closest point $P_1$ on the margin line. Compute the distance between these two points, and the distance is an estimate of the shoulder width. By averaging the result over all points in one section, we get the shoulder width for that section.
 
-![Picture 1](./metric_assets/Picture1.jpg)
+    ![Picture 1](./metric_assets/Picture1.jpg)
 
 ### Axial Wall Height
 - Per-vertex value on the occlusal line
 - For each point $P_1$ on the occlusal line, find a point $P_1^{\prime}$ on the axial line which forms a line $P_1P_1^{\prime}$ that has the smallest angle to the vertical y-axis. The line $P_1P_1^{\prime}$ formed by these two points approximates the axial wall. The distance $|P_1P_1^{\prime}|$ is the axial wall height. Again, we average this value over all points in one section.
 
-![Picture 2](./metric_assets/Picture2.png)
+    ![Picture 2](./metric_assets/Picture2.png)
 
 ### Taper
 - Per-vertex value on the occlusal line

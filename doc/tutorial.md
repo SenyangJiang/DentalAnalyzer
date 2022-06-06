@@ -1,9 +1,9 @@
 ## Tutorial: How to prepare the data for Dental Analyzer
-1.	Before using Dental Analyzer, we need to do some preprocessing on the student prep and original prep. MeshLab is included in the installation package of Dental Analyzer. Go to the DentalAnalyzer folder, open MeshLab\meshlab.exe.
+1. Before using Dental Analyzer, we need to do some preprocessing on the student prep and original prep. MeshLab is included in the installation package of Dental Analyzer. Go to the DentalAnalyzer folder, open MeshLab\meshlab.exe.
 
     ![Picture 1](./tutorial_assets/Picture1.png)
 
-1. Open MeshLab. Import **original prep** model by clicking Files->Import Mesh. Or you can import the model by directly dragging the mesh file to the MeshLab interface
+   Open MeshLab. Import **original prep** model by clicking Files->Import Mesh. Or you can import the model by directly dragging the mesh file to the MeshLab interface
 
     ![Picture 2](./tutorial_assets/Picture2.png)
 
@@ -13,7 +13,7 @@
 
     ![Picture 3](./tutorial_assets/Picture3.png)
 
-    Use the manipulator tool ![](./assets/manipulator.png) on the tool bar to transform the mesh to the desired position. Follow the instructions to transform the mesh using your mouse.
+    Use the manipulator tool ![](./tutorial_assets/manipulator.png) on the tool bar to transform the mesh to the desired position. Follow the instructions to transform the mesh using your mouse.
 
     Tip: when you want to change the view when transforming, hit 'Esc' key to exit the manipulator mode so that you can change the view, and hit 'Esc' key again to return to the manipulator mode.
 
