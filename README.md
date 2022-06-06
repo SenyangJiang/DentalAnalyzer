@@ -14,8 +14,8 @@
 | Gingival Extension | Distance between the margin line and gingiva line |
 
 ## How to download Dental Analyzer
-The installer is available in the following link: https://drive.google.com/file/d/1Z_LomSJdLxnflsJ0CzNR-8mJ562NfFXX/view?usp=sharing
-Follow the instructions of the installer to install Dental Analyzer on your computer.
+The installer is available in the following link: https://drive.google.com/file/d/1FnJQnlzbOwiD9HvDvWDoyA7UDLXkje7E/view?usp=sharing
+Unzip the file to get Dental Analyzer on your computer.
 
 Note: If the application is missing VCRUNTIME libraries, try to run the VC_redist.x64.exe in the installation folder to get necessary libraries.
 

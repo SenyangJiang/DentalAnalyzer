@@ -25,8 +25,6 @@ private slots:
 
     void CreateAlert(const QString& text);
 
-    void on_pushButtonRecordAudio_clicked();
-
     void on_pushButtonSaveFeedback_clicked();
 
     void on_pushButtonAnalyze_clicked();
@@ -48,8 +46,6 @@ private slots:
     void on_pushButtonOriginalModel_clicked();
 
     void on_pushButtonStudentFolder_clicked();
-
-    void on_radioButtonManualAlignment_toggled(bool checked);
 
     void on_checkBoxDivision_toggled(bool checked);
 

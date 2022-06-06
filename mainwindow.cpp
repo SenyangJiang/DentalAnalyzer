@@ -19,13 +19,9 @@ MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent)
   , ui(new Ui::MainWindow)
   , m_audioRecorder(new AudioRecorder())
-  , m_analyzer(new Analyzer())
+  , m_analyzer(nullptr)
 {
   ui->setupUi(this);
-  QObject::connect(m_analyzer,&Analyzer::msgToConsole,this,&MainWindow::updateConsole);
-  QObject::connect(m_analyzer, &Analyzer::updateProgressBar, this, &MainWindow::setProgressBar);
-  QObject::connect(m_analyzer, &Analyzer::alertToWindow, this, &MainWindow::CreateAlert);
-  m_analyzer->status_done = false;
 }
 
 MainWindow::~MainWindow()
@@ -36,7 +32,6 @@ MainWindow::~MainWindow()
 void MainWindow::updateConsole(const QString &text)
 {
   ui->textBrowserOutput->append(text);
-  std::cerr << text.toStdString() << std::endl;
 }
 
 void MainWindow::setProgressBar(int val)
@@ -47,11 +42,6 @@ void MainWindow::setProgressBar(int val)
 void MainWindow::CreateAlert(const QString &text)
 {
   QMessageBox::information(this, "Alert", text);
-}
-
-void MainWindow::on_pushButtonRecordAudio_clicked()
-{
-  m_audioRecorder->show();
 }
 
 void MainWindow::on_pushButtonSaveFeedback_clicked()
@@ -77,36 +67,24 @@ void MainWindow::on_pushButtonSaveFeedback_clicked()
 
 void MainWindow::on_pushButtonAnalyze_clicked()
 {
-  if (ui->radioButtonAutoAlignment->isChecked()) {
-    param.useManualTransform = false;
-  } else {
-    bool ok = false;
-    param.useManualTransform = true;
-    param.transformMatrix[0][0] = ui->lineEdit_00->text().toDouble(&ok);
-    param.transformMatrix[0][1] = ui->lineEdit_01->text().toDouble(&ok);
-    param.transformMatrix[0][2] = ui->lineEdit_02->text().toDouble(&ok);
-    param.transformMatrix[0][3] = ui->lineEdit_03->text().toDouble(&ok);
-    param.transformMatrix[1][0] = ui->lineEdit_10->text().toDouble(&ok);
-    param.transformMatrix[1][1] = ui->lineEdit_11->text().toDouble(&ok);
-    param.transformMatrix[1][2] = ui->lineEdit_12->text().toDouble(&ok);
-    param.transformMatrix[1][3] = ui->lineEdit_13->text().toDouble(&ok);
-    param.transformMatrix[2][0] = ui->lineEdit_20->text().toDouble(&ok);
-    param.transformMatrix[2][1] = ui->lineEdit_21->text().toDouble(&ok);
-    param.transformMatrix[2][2] = ui->lineEdit_22->text().toDouble(&ok);
-    param.transformMatrix[2][3] = ui->lineEdit_23->text().toDouble(&ok);
-    param.transformMatrix[3][0] = ui->lineEdit_30->text().toDouble(&ok);
-    param.transformMatrix[3][1] = ui->lineEdit_31->text().toDouble(&ok);
-    param.transformMatrix[3][2] = ui->lineEdit_32->text().toDouble(&ok);
-    param.transformMatrix[3][3] = ui->lineEdit_33->text().toDouble(&ok);
+  if (m_analyzer && !m_analyzer->status_done) {
+    QMessageBox::information(this, tr("Error"),
+                             tr("Please wait for the program to finish"));
   }
 
+  ui->textBrowserOutput->clear();
   if (ui->checkBoxDivision->isChecked()) {
     param.divisionEnabled = true;
   } else {
     param.divisionEnabled = false;
   }
 
-  m_analyzer->param = param;
+  delete m_analyzer;
+  m_analyzer = new Analyzer(param);
+  QObject::connect(m_analyzer,&Analyzer::msgToConsole,this,&MainWindow::updateConsole);
+  QObject::connect(m_analyzer, &Analyzer::updateProgressBar, this, &MainWindow::setProgressBar);
+  QObject::connect(m_analyzer, &Analyzer::alertToWindow, this, &MainWindow::CreateAlert);
+
   QtConcurrent::run(this->m_analyzer, &Analyzer::analyze);
 }
 
@@ -206,47 +184,6 @@ void MainWindow::on_pushButtonOriginalModel_clicked()
     param.originalModel = filename.toStdString();
     ui->lineEditOriginalModel->setText(filename);
   }
-}
-
-void MainWindow::on_radioButtonManualAlignment_toggled(bool checked)
-{
-    if (checked) {
-      ui->labelTransformationMatrix->setEnabled(true);
-      ui->lineEdit_00->setEnabled(true);
-      ui->lineEdit_01->setEnabled(true);
-      ui->lineEdit_02->setEnabled(true);
-      ui->lineEdit_03->setEnabled(true);
-      ui->lineEdit_10->setEnabled(true);
-      ui->lineEdit_11->setEnabled(true);
-      ui->lineEdit_12->setEnabled(true);
-      ui->lineEdit_13->setEnabled(true);
-      ui->lineEdit_20->setEnabled(true);
-      ui->lineEdit_21->setEnabled(true);
-      ui->lineEdit_22->setEnabled(true);
-      ui->lineEdit_23->setEnabled(true);
-      ui->lineEdit_30->setEnabled(true);
-      ui->lineEdit_31->setEnabled(true);
-      ui->lineEdit_32->setEnabled(true);
-      ui->lineEdit_33->setEnabled(true);
-    } else {
-      ui->labelTransformationMatrix->setDisabled(true);
-      ui->lineEdit_00->setDisabled(true);
-      ui->lineEdit_01->setDisabled(true);
-      ui->lineEdit_02->setDisabled(true);
-      ui->lineEdit_03->setDisabled(true);
-      ui->lineEdit_10->setDisabled(true);
-      ui->lineEdit_11->setDisabled(true);
-      ui->lineEdit_12->setDisabled(true);
-      ui->lineEdit_13->setDisabled(true);
-      ui->lineEdit_20->setDisabled(true);
-      ui->lineEdit_21->setDisabled(true);
-      ui->lineEdit_22->setDisabled(true);
-      ui->lineEdit_23->setDisabled(true);
-      ui->lineEdit_30->setDisabled(true);
-      ui->lineEdit_31->setDisabled(true);
-      ui->lineEdit_32->setDisabled(true);
-      ui->lineEdit_33->setDisabled(true);
-    }
 }
 
 void MainWindow::on_checkBoxDivision_toggled(bool checked)

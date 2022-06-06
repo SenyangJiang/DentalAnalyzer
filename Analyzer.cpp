@@ -1,45 +1,29 @@
 #include <CGAL/IO/read_off_points.h>
 #include <CGAL/IO/write_off_points.h>
 #include <CGAL/IO/Polyhedron_iostream.h>
-
-#include <CGAL/Aff_transformation_3.h>
-#include <CGAL/pointmatcher/register_point_sets.h>
-#include <CGAL/pointmatcher/compute_registration_transformation.h>
-#include <CGAL/OpenGR/compute_registration_transformation.h>
-
-#include <CGAL/Polygon_mesh_processing/transform.h>
-
-#include <fstream>
-#include <iostream>
-#include <utility>
-#include <vector>
-#include <unordered_set>
-#include <numeric>
-#include <stdlib.h>
-#include <time.h>
-
 #include <CGAL/intersections.h>
-
-#include "Analyzer.h"
-#include "utility.h"
-#include "objects.h"
-#include "result.h"
-
-// additional headers for analyze
 #include <CGAL/squared_distance_3.h>
 #include <CGAL/squared_distance_2.h>
 #include <CGAL/Kernel/global_functions.h>
 #include <CGAL/property_map.h>
 #include <CGAL/enum.h>
-
-#include <CGAL/IO/Polyhedron_iostream.h>
-#include <CGAL/IO/read_off_points.h>
-
 #include <CGAL/Polygon_mesh_processing/measure.h> // face_area()
 
+#include <fstream>
+#include <iostream>
+#include <utility>
+#include <vector>
+#include <numeric>
+#include <stdlib.h>
+#include <time.h>
+#include <algorithm>
 #include <iterator>
 #include <string>
 
+#include "Analyzer.h"
+#include "utility.h"
+#include "objects.h"
+#include "result.h"
 #include "Roughness.h"
 
 #include <QFuture> // for async computation
@@ -47,6 +31,12 @@
 #include <QFile>
 
 using namespace mycode;
+
+Analyzer::Analyzer(Parameter param)
+{
+  status_done = false;
+  this->param = param;
+}
 
 int Analyzer::analyze()
 {
@@ -67,6 +57,7 @@ int Analyzer::analyze()
   emit updateProgressBar(90);
   // TODO: fix this: compute_roughness();
   emit updateProgressBar(100);
+  /* mark status as done */
   status_done = true;
   return 0;
 }
@@ -89,22 +80,6 @@ void Analyzer::init()
   input >> this->original_model_poly;
   input.close();
 
-  /* compute alignment matrix
-   * and align student model with original model */
-  K::Aff_transformation_3 transformation = this->compute_alignment_matrix();
-  if (debug) {
-    std::cout << "transformation" << transformation << std::endl;
-  }
-  CGAL::Polygon_mesh_processing::transform(transformation, this->student_model);
-  CGAL::Polygon_mesh_processing::transform(transformation, this->student_model_poly);
-
-  if (debug) {
-    // write transformed model to output
-    std::string output_name = "aligned1.ply";
-    std::ofstream out(output_name);
-    CGAL::write_ply(out, student_model);
-  }
-
   student_tree.rebuild(faces(this->student_model_poly).first, faces(this->student_model_poly).second, this->student_model_poly);
   original_tree.rebuild(faces(this->original_model_poly).first, faces(this->original_model_poly).second, this->original_model_poly);
 
@@ -112,71 +87,22 @@ void Analyzer::init()
     std::vector<mycode::Point_3> temp;
     readpp(temp, param.studentCenterPoint);
     if (temp.size() != 1) {
-      std::cerr << "student model center point is not a single point, size: " << temp.size() << std::endl;
+      emit alertToWindow(QString("student model center point is not a single point, size: %1").arg(temp.size()));
       return;
     }
-    student_model_center = temp[0].transform(transformation);
     temp.clear();
     readpp(temp, param.studentMidpoint);
     if (temp.size() != 1) {
-      std::cerr << "student model mid point is not a single point, size: " << temp.size() << std::endl;
+      emit alertToWindow(QString("student model mid point is not a single point, size: %1").arg(temp.size()));
       return;
     }
-    student_model_midpoint = temp[0].transform(transformation);
  }
 
-  /* read sets of points on student model from file
-   * and transform these points according to the alignment matrix */
+  /* read sets of points on student model from file */
   readpp(margin_points, param.studentMarginPoints);
-  for (auto& point : margin_points) {
-    point = point.transform(transformation);
-  }
   readpp(axial_points, param.studentAxialPoints);
-  for (auto& point : axial_points) {
-    point = point.transform(transformation);
-  }
   readpp(occlusal_points, param.studentOcclusalPoints);
-  for (auto& point : occlusal_points) {
-    point = point.transform(transformation);
-  }
   readpp(gingiva_points, param.studentGingivaPoints);
-  for (auto& point : gingiva_points) {
-    point = point.transform(transformation);
-  }
-}
-
-K::Aff_transformation_3 Analyzer::compute_alignment_matrix()
-{
-  if (param.useManualTransform) {
-    return K::Aff_transformation_3(param.transformMatrix[0][0],param.transformMatrix[0][1],param.transformMatrix[0][2],param.transformMatrix[0][3],
-        param.transformMatrix[1][0],param.transformMatrix[1][1],param.transformMatrix[1][2],param.transformMatrix[1][3],
-        param.transformMatrix[2][0],param.transformMatrix[2][1],param.transformMatrix[2][2],param.transformMatrix[2][3]);
-  } else {
-    std::vector<Pwn> pwns1, pwns2;
-    std::ifstream input(param.studentModel);
-    CGAL::read_off_points(input, std::back_inserter(pwns1),
-                CGAL::parameters::point_map (Point_map()).
-                normal_map (Normal_map()));
-    input.close();
-
-    input.open(param.originalModel);
-    CGAL::read_off_points(input, std::back_inserter(pwns2),
-                CGAL::parameters::point_map (Point_map()).
-                normal_map (Normal_map()));
-    input.close();
-    K::Aff_transformation_3 res1 =
-        std::get<0>(
-            CGAL::OpenGR::compute_registration_transformation(pwns1, pwns2,
-                                                              params::point_map(Point_map()).normal_map(Normal_map()),
-                                                              params::point_map(Point_map()).normal_map(Normal_map())));
-
-    K::Aff_transformation_3 res2 =
-        std::get<0>(
-            CGAL::pointmatcher::compute_registration_transformation(pwns1, pwns2,
-                                                                    params::point_map(Point_map()).normal_map(Normal_map()),
-                                                                    params::point_map(Point_map()).normal_map(Normal_map()).transformation(res1)));
-    return res2;
-  }
 }
 
 // constructing lines from points
@@ -234,7 +160,6 @@ void Analyzer::compute_taper()
     z_avg += op.z();
     count++;
   }
-  std::cerr << "count = " << count << std::endl;
   x_avg /= count;
   z_avg /= count;
 
@@ -293,7 +218,6 @@ void Analyzer::compute_taper()
     mycode::FT taper = toc/2;
 
     if (param.divisionEnabled) {
-      std::cerr << "checking region" << std::endl;
       switch (region_of(target_point)) {
         case Lingual:
           tapers_lingual.push_back(taper);
@@ -456,7 +380,8 @@ void Analyzer::compute_gingival_extension()
     mycode::Point_3 vertical_point;
     for (auto gp : gingiva_points)
     {
-      mycode::FT angle = CGAL::approximate_angle(mycode::Vector_3(mp, gp), mycode::Vector_3(0, 1, 0));
+      mycode::Vector_3 v(mp, gp);
+      mycode::FT angle = std::min(CGAL::approximate_angle(v, mycode::Vector_3(0, 1, 0)), CGAL::approximate_angle(v, mycode::Vector_3(0, -1, 0)));
       if (angle < min_angle)
       {
         vertical_point = gp;
@@ -958,10 +883,4 @@ void Analyzer::report_stats(Stats* stats, const std::vector<mycode::FT> &values)
   emit msgToConsole(QString("average = %1").arg(average));
   emit msgToConsole(QString("max = %1").arg(max));
   emit msgToConsole(QString("min = %1").arg(min));
-}
-
-void Analyzer::feedback()
-{
-  // TODO: create feedback
-  return;
 }

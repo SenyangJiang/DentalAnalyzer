@@ -4,7 +4,6 @@
 #include <QObject>
 
 #include <vector>
-#include <unordered_set>
 
 #include "objects.h"
 #include "result.h"
@@ -15,7 +14,10 @@ class Analyzer : public QObject
     Q_OBJECT
 
 public:
-    // main analyze function
+    // constructor
+    Analyzer(Parameter param);
+
+    // compute function called by mainwindow
     int analyze();
 
     Parameter param;
@@ -34,9 +36,6 @@ signals:
 private:
     // initialize private variables
     void init();
-
-    // align student model with original model
-    mycode::K::Aff_transformation_3 compute_alignment_matrix();
 
     // constructing 2d lines from points
     void construct_lines(std::vector<mycode::Point_3> &points, std::vector<mycode::Segment_2> &lines);
@@ -83,11 +82,9 @@ private:
     // report avg, min, max of an array of numbers, and record them in stats struct
     void report_stats(Stats* stats, const std::vector<mycode::FT> &values);
 
-    // give feedback by comparing value against ruberic
-    void feedback();
+    bool debug = false; /* debug flag for testing */
 
-    bool debug = false; /* debug flag for internal testing */
-
+    // private variables to read in
     mycode::Mesh student_model;
     mycode::Mesh original_model;
     mycode::Polyhedron student_model_poly;
