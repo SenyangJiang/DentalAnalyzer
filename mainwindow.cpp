@@ -207,7 +207,7 @@ void MainWindow::on_checkBoxDivision_toggled(bool checked)
 
 void MainWindow::on_pushButtonExport_clicked()
 {
-  if (!m_analyzer->status_done) {
+  if (!m_analyzer || !m_analyzer->status_done) {
     QMessageBox::information(this, tr("Export Error"),
                              tr("Results not available"));
     return;
