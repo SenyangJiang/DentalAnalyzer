@@ -3,7 +3,6 @@
 
 #include <QMainWindow>
 #include "Analyzer.h"
-#include "audiorecorder.h"
 #include "parameter.h"
 
 QT_BEGIN_NAMESPACE
@@ -54,7 +53,6 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    AudioRecorder* m_audioRecorder;
     Analyzer* m_analyzer;
     Parameter param;
 };

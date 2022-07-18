@@ -61,9 +61,6 @@ private:
     // compute axial wall height
     void compute_axial_wall_height();
 
-    // compute roughness
-    void compute_roughness();
-
     // determine what region the point belongs to
     Region region_of(mycode::Point_3 point);
 

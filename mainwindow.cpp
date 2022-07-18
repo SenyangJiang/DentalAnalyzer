@@ -9,7 +9,6 @@
 #include <QtConcurrent/QtConcurrent> // for async computation
 
 #include "Analyzer.h"
-#include "audiorecorder.h"
 #include "result.h"
 
 #include <iostream>
@@ -18,7 +17,6 @@
 MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent)
   , ui(new Ui::MainWindow)
-  , m_audioRecorder(new AudioRecorder())
   , m_analyzer(nullptr)
 {
   ui->setupUi(this);

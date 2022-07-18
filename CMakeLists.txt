@@ -22,9 +22,6 @@ set(Boost_DEBUG OFF)
 set(CGAL_Boost_USE_STATIC_LIBS ON)
 
 set(EIGEN3_INCLUDE_DIR "C:/eigen-3.3.7")
-set(OpenGR_DIR "C:/Program Files (x86)/OpenGR/lib/cmake/opengr")
-set(libnabo_DIR "C:/dev/libnabo/build")
-set(libpointmatcher_DIR "C:/dev/libpointmatcher/build/install/share/libpointmatcher/cmake")
 set(CMAKE_BUILD_TYPE "Release")
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Multimedia REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Multimedia REQUIRED)
@@ -70,34 +67,6 @@ else()
 
 endif()
 
-# OpenGR
-find_package(OpenGR)
-include(CGAL_OpenGR_support)
-if (TARGET CGAL::OpenGR_support)
-
-  set(CGAL_libs ${CGAL_libs} CGAL::OpenGR_support)
-
-else()
-
-  message(STATUS "This project requires OpenGR, and will not be compiled.")
-  return()
-
-endif()
-
-# libpointmatcher
-find_package(libpointmatcher)
-include(CGAL_pointmatcher_support)
-if (TARGET CGAL::pointmatcher_support)
-
-  set(CGAL_libs ${CGAL_libs} CGAL::pointmatcher_support)
-
-else()
-
-  message(STATUS "This project requires libpointmatcher, and will not be compiled.")
-  return()
-
-endif()
-
 set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
@@ -108,25 +77,6 @@ set(PROJECT_SOURCES
         objects.h
         utility.cpp
         utility.h
-        extract_Vpropres.cpp
-        extract_Vpropres.h
-        normal_cycle.h
-        polyhedron_enrichment_define.h
-        Roughness.h
-        Roughness_Items.h
-        Polyhedron/polyhedron.h
-        Polyhedron/Correct_CGAL_Structure.h
-        Polyhedron/Polyhedron_Builder.h
-        Polyhedron/Polyhedron_Copy.h
-        Polyhedron/polyhedron_enriched_polyhedron.h
-        Polyhedron/Polyhedron_OBJ_CGALImporter.h
-        Polyhedron/Polyhedron_OFF_CGALImporter.h
-        Polyhedron/polyhedron_shared_items.h
-        audiolevel.cpp
-        audiolevel.h
-        audiorecorder.cpp
-        audiorecorder.h
-        audiorecorder.ui
         result.h
         parameter.h
         result.cpp

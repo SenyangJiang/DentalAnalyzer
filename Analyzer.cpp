@@ -24,7 +24,6 @@
 #include "utility.h"
 #include "objects.h"
 #include "result.h"
-#include "Roughness.h"
 
 #include <QFuture> // for async computation
 #include <QtConcurrent/QtConcurrent> // for async computation
@@ -54,8 +53,6 @@ int Analyzer::analyze()
   compute_occlusal_reduction();
   emit updateProgressBar(85);
   compute_gingival_extension();
-  emit updateProgressBar(90);
-  // TODO: fix this: compute_roughness();
   emit updateProgressBar(100);
   /* mark status as done */
   status_done = true;
@@ -551,156 +548,6 @@ void Analyzer::compute_axial_wall_height()
   } else {
     report_stats(&student_result.axial_wall_height_stats[0], axial_wall_height);
   }
-}
-
-// not in use. TODO: fix this function
-void Analyzer::compute_roughness()
-{
-  emit msgToConsole("computing roughness for the shoulder, this might take about 1 minute...");
-
-  std::unordered_set<mycode::vertex_descriptor> pointsOnShoulder;
-  std::unordered_set<mycode::vertex_descriptor> pointsOnAxialWall;
-  select_shoulder_points(pointsOnShoulder);
-  select_axial_wall_points(pointsOnAxialWall);
-
-  PolyhedronPtr poly = PolyhedronPtr(new Polyhedron_enriched()); // it was called Polyhedron, Polyhedron_enriched is just an alias to resolve typedef issues
-  poly->load_mesh_off(param.studentModel);
-  mycode::Mesh m1; // m1 will store roughness on shoulder
-  mycode::Mesh m2; // m2 will store roughness on axial wall
-
-  std::ifstream input(this->param.studentModel);
-  CGAL::read_off(input, m1);
-  input.close();
-
-  input.open(this->param.studentModel);
-  CGAL::read_off(input, m2);
-  input.close();
-
-  poly->Normalise();
-  poly->compute_bounding_box();
-  poly->compute_normals();
-  poly->compute_type();
-  poly->calc_nb_components();
-  poly->calc_nb_boundaries();
-
-  double epsilon = 0.01;
-
-  CRoughness<Polyhedron_enriched> roughness(poly.get());
-  roughness.compute_Roughness(2 * epsilon, epsilon);
-
-  mycode::Mesh::Property_map<mycode::vertex_descriptor, double> roughness_on_shoulder;
-  bool created;
-  boost::tie(roughness_on_shoulder, created) = m1.add_property_map<mycode::vertex_descriptor, double>("v:quality", 0.0);
-  assert(created);
-  mycode::Mesh::Property_map<mycode::vertex_descriptor, double> roughness_on_axial_wall;
-  boost::tie(roughness_on_axial_wall, created) = m2.add_property_map<mycode::vertex_descriptor, double>("v:quality", 0.0);
-  assert(created);
-
-  // roughness of points in four regions
-  std::vector<mycode::FT> shoulder_roughness_lingual;
-  std::vector<mycode::FT> shoulder_roughness_buccal;
-  std::vector<mycode::FT> shoulder_roughness_mesial;
-  std::vector<mycode::FT> shoulder_roughness_distal;
-
-  std::vector<mycode::FT> axial_wall_roughness_lingual;
-  std::vector<mycode::FT> axial_wall_roughness_buccal;
-  std::vector<mycode::FT> axial_wall_roughness_mesial;
-  std::vector<mycode::FT> axial_wall_roughness_distal;
-
-  // average roughness in four sectors
-  double avg_roughness_shoulder[4] = {};
-  double avg_roughness_axial_wall[4] = {};
-
-  mycode::vertex_descriptor vi = *(m1.vertices().begin());
-  for (Vertex_iterator pVertex = poly->vertices_begin(); pVertex != poly->vertices_end(); pVertex++)
-  {
-    if (pointsOnShoulder.find(vi) != pointsOnShoulder.end()) {
-      // add roughness quality on the shoulder
-      mycode::Point_3 p = this->student_model.point(vi);
-      roughness_on_shoulder[vi] = pVertex->Roughness();
-      switch (region_of(p)) {
-        case Lingual:
-          shoulder_roughness_lingual.push_back(pVertex->Roughness());
-          break;
-        case Buccal:
-          shoulder_roughness_buccal.push_back(pVertex->Roughness());
-          break;
-        case Mesial:
-          shoulder_roughness_mesial.push_back(pVertex->Roughness());
-          break;
-        case Distal:
-          shoulder_roughness_distal.push_back(pVertex->Roughness());
-          break;
-      }
-    } else if (pointsOnAxialWall.find(vi) != pointsOnAxialWall.end()) {
-      // add roughness quality on the axial wall
-      mycode::Point_3 p = this->student_model.point(vi);
-      roughness_on_axial_wall[vi] = pVertex->Roughness();
-      switch (region_of(p)) {
-        case Lingual:
-          axial_wall_roughness_lingual.push_back(pVertex->Roughness());
-          break;
-        case Buccal:
-          axial_wall_roughness_buccal.push_back(pVertex->Roughness());
-          break;
-        case Mesial:
-          axial_wall_roughness_mesial.push_back(pVertex->Roughness());
-          break;
-        case Distal:
-          axial_wall_roughness_distal.push_back(pVertex->Roughness());
-          break;
-      }
-    }
-    vi++;
-  }
-  avg_roughness_shoulder[0] = std::accumulate(shoulder_roughness_lingual.begin(), shoulder_roughness_lingual.end(), 0.0) / shoulder_roughness_lingual.size();
-  avg_roughness_shoulder[1] = std::accumulate(shoulder_roughness_buccal.begin(), shoulder_roughness_buccal.end(), 0.0) / shoulder_roughness_buccal.size();
-  avg_roughness_shoulder[2] = std::accumulate(shoulder_roughness_mesial.begin(), shoulder_roughness_mesial.end(), 0.0) / shoulder_roughness_mesial.size();
-  avg_roughness_shoulder[3] = std::accumulate(shoulder_roughness_distal.begin(), shoulder_roughness_distal.end(), 0.0) / shoulder_roughness_distal.size();
-
-  avg_roughness_axial_wall[0] = std::accumulate(axial_wall_roughness_lingual.begin(), axial_wall_roughness_lingual.end(), 0.0) / axial_wall_roughness_lingual.size();
-  avg_roughness_axial_wall[1] = std::accumulate(axial_wall_roughness_buccal.begin(), axial_wall_roughness_buccal.end(), 0.0) / axial_wall_roughness_buccal.size();
-  avg_roughness_axial_wall[2] = std::accumulate(axial_wall_roughness_mesial.begin(), axial_wall_roughness_mesial.end(), 0.0) / axial_wall_roughness_mesial.size();
-  avg_roughness_axial_wall[3] = std::accumulate(axial_wall_roughness_distal.begin(), axial_wall_roughness_distal.end(), 0.0) / axial_wall_roughness_distal.size();
-
-  std::ofstream out("roughness_shoulder.ply");
-  bool wrote = CGAL::write_ply(out, m1);
-  if (!wrote)
-  {
-    std::cerr << "write failed" << std::endl;
-  }
-
-  std::ofstream out2("roughness_axial_wall.ply");
-  wrote = CGAL::write_ply(out2, m2);
-  if (!wrote)
-  {
-    std::cerr << "write failed" << std::endl;
-  }
-
-//  /* report stats to the console */
-//  emit msgToConsole("=============================");
-//  emit msgToConsole("=== ROUGHNESS ON SHOULDER ===");
-//  emit msgToConsole("=============================");
-//  emit msgToConsole("=== Lingual ===");
-//  report_stats(&student_result.roughness_shoulder[0], shoulder_roughness_lingual);
-//  emit msgToConsole("=== Buccal ===");
-//  report_stats(&student_result.roughness_shoulder[1], shoulder_roughness_buccal);
-//  emit msgToConsole("=== Mesial ===");
-//  report_stats(&student_result.roughness_shoulder[2], shoulder_roughness_mesial);
-//  emit msgToConsole("=== Distal ===");
-//  report_stats(&student_result.roughness_shoulder[3], shoulder_roughness_distal);
-
-//  emit msgToConsole("===============================");
-//  emit msgToConsole("=== ROUGHNESS ON AXIAL WALL ===");
-//  emit msgToConsole("===============================");
-//  emit msgToConsole("=== Lingual ===");
-//  report_stats(&student_result.roughness_axial_wall[0], axial_wall_roughness_lingual);
-//  emit msgToConsole("=== Buccal ===");
-//  report_stats(&student_result.roughness_axial_wall[1], axial_wall_roughness_buccal);
-//  emit msgToConsole("=== Mesial ===");
-//  report_stats(&student_result.roughness_axial_wall[2], axial_wall_roughness_mesial);
-//  emit msgToConsole("=== Distal ===");
-//  report_stats(&student_result.roughness_axial_wall[3], axial_wall_roughness_distal);
 }
 
 Region Analyzer::region_of(mycode::Point_3 point)
