@@ -62,7 +62,13 @@ Now all models have a position matrix that is different from the identity matrix
 
 ![Picture 12](./tutorial_assets/Picture12.png)
 
-Freeze (Filters -> Mesh Layer -> Matrix: Freeze Current Matrix) and save the aligned student preps as **.OFF files**.
+**Freeze (Filters -> Mesh Layer -> Matrix: Freeze Current Matrix)** and save the aligned student preps as **.OFF files**.
+
+Lets stop and check our results, if you opened the original prep (aligned to y axis from step 2) and aligned student preps in step 3, they should be prefectly aligned.
+
+![Picture 19](./tutorial_assets/Picture19.png)
+
+![Picture 20](./tutorial_assets/Picture20.png)
 
 ### 4. Mark lines on Student Prep
 Then we need to mark the lines (gingiva line, margin line, axial line, occlusal line) on the **transformed student prep model** we saved on step 3. These lines are required as input to Dental Analyzer. We will mark margin lines on the student prep model as an example.
@@ -76,7 +82,6 @@ Untick the ‘Show Normal’ option at the bottom of the window, since we are no
 ![Picture 14](./tutorial_assets/Picture14.png)
 
 After finishing picking the points, save it as .pp file by clicking on the 'Save' button on the top right corner. Then, remove all the picked points in the window, and repeat the process for each of the four lines (gingiva line, margin line, axial line, occlusal line).
-
 
 ## Tutorial: How to use Dental Analyzer
 Open the DentalAnalyzer, you should see an interface like the following.
