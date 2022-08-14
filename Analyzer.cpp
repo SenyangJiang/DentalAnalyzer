@@ -7,7 +7,6 @@
 #include <CGAL/Kernel/global_functions.h>
 #include <CGAL/property_map.h>
 #include <CGAL/enum.h>
-#include <CGAL/Polygon_mesh_processing/measure.h> // face_area()
 
 #include <fstream>
 #include <iostream>
@@ -31,16 +30,21 @@
 
 using namespace mycode;
 
+// constructor
 Analyzer::Analyzer(Parameter param)
 {
   status_done = false;
   this->param = param;
 }
 
+// compute function called by mainwindow
 int Analyzer::analyze()
 {
-  emit updateProgressBar(10);
-  init();
+  emit updateProgressBar(0);
+  if (!init()) {
+    status_done = true;
+    return 1;
+  }
   emit updateProgressBar(20);
   compute_shoulder_width();
   emit updateProgressBar(33);
@@ -54,77 +58,172 @@ int Analyzer::analyze()
   emit updateProgressBar(85);
   compute_gingival_extension();
   emit updateProgressBar(100);
+
   /* mark status as done */
   status_done = true;
   return 0;
 }
 
-void Analyzer::init()
+// initialize private variables
+bool Analyzer::init()
 {
-  std::ifstream input(this->param.studentModel);
-  CGAL::read_off(input, this->student_model);
-  input.close();
+  /* read models */
+  if (!read_off(this->param.studentModel, this->student_model, this->student_model_poly)) {
+    return false;
+  }
 
-  input.open(this->param.studentModel);
-  input >> this->student_model_poly;
-  input.close();
+  if (!read_off(this->param.originalModel, this->original_model, this->original_model_poly)) {
+    return false;
+  }
 
-  input.open(this->param.originalModel);
-  CGAL::read_off(input, this->original_model);
-  input.close();
-
-  input.open(this->param.originalModel);
-  input >> this->original_model_poly;
-  input.close();
-
+  /* build AABB tree for distance query */
   student_tree.rebuild(faces(this->student_model_poly).first, faces(this->student_model_poly).second, this->student_model_poly);
   original_tree.rebuild(faces(this->original_model_poly).first, faces(this->original_model_poly).second, this->original_model_poly);
 
+  /* read optional center & mid point */
   if (param.divisionEnabled) {
-    std::vector<mycode::Point_3> temp;
-    readpp(temp, param.studentCenterPoint);
+    std::vector<Point_3> temp;
+    if (!readpp(temp, param.studentCenterPoint)) {
+      return false;
+    }
     if (temp.size() != 1) {
       emit alertToWindow(QString("student model center point is not a single point, size: %1").arg(temp.size()));
-      return;
+      return false;
     }
     temp.clear();
-    readpp(temp, param.studentMidpoint);
+    if (!readpp(temp, param.studentMidpoint)) {
+      return false;
+    }
     if (temp.size() != 1) {
       emit alertToWindow(QString("student model mid point is not a single point, size: %1").arg(temp.size()));
-      return;
+      return false;
     }
  }
 
   /* read sets of points on student model from file */
   readpp(margin_points, param.studentMarginPoints);
+  if (margin_points.size() < 20) {
+    emit alertToWindow(QString("please specify more then 20 points for margin line, current size: %1").arg(margin_points.size()));
+    return false;
+  }
   readpp(axial_points, param.studentAxialPoints);
+  if (axial_points.size() < 20) {
+    emit alertToWindow(QString("please specify more then 20 points for axial line, current size: %1").arg(axial_points.size()));
+    return false;
+  }
   readpp(occlusal_points, param.studentOcclusalPoints);
+  if (occlusal_points.size() < 20) {
+    emit alertToWindow(QString("please specify more then 20 points for occlusal line, current size: %1").arg(occlusal_points.size()));
+    return false;
+  }
   readpp(gingiva_points, param.studentGingivaPoints);
+  if (gingiva_points.size() < 20) {
+    emit alertToWindow(QString("please specify more then 20 points for gingiva line, current size: %1").arg(gingiva_points.size()));
+    return false;
+  }
+
+  return true;
 }
 
-// constructing lines from points
-void Analyzer::construct_lines(std::vector<mycode::Point_3> &points, std::vector<mycode::Segment_2> &lines)
+// parse .off file to mesh and polyhedral surface
+bool Analyzer::read_off(string file, Mesh &mesh, Polyhedron &poly) {
+  std::ifstream input;
+  input.open(file);
+  if (!input.good()) {
+    emit alertToWindow(QString("model file '%1' cannot be read").arg(QString::fromStdString(file)));
+    return false;
+  }
+  if (!CGAL::read_off(input, mesh)) {
+    emit alertToWindow(QString("cannot parse model file '%1' to mesh").arg(QString::fromStdString(file)));
+    return false;
+  }
+  input.close();
+
+  input.open(file);
+  if (!input.good()) {
+    emit alertToWindow(QString("model file '%1' cannot be read").arg(QString::fromStdString(file)));
+    return false;
+  }
+  if (!CGAL::read_off(input, poly)) {
+    emit alertToWindow(QString("cannot parse model file '%1' to polyhedral surface").arg(QString::fromStdString(file)));
+    return false;
+  }
+  input.close();
+  return true;
+}
+
+// function for reading in points
+bool Analyzer::readpp(std::vector<Point_3> &points, std::string filename)
+{
+  std::ifstream input(filename);
+  if (!input.good())
+  {
+    emit alertToWindow(QString("point file '%1' cannot be read").arg(QString::fromStdString(filename)));
+    return false;
+  }
+  double x;
+  double y;
+  double z;
+  std::string line;
+  std::size_t start;
+  std::size_t end;
+  while (std::getline(input, line))
+  {
+    end = line.find("<point");
+    if (end != std::string::npos)
+    {
+      while (1)
+      {
+        start = line.find("\"", end + 1);
+        if (start == std::string::npos)
+        {
+          break;
+        }
+        char var = line[start - 2];
+        end = line.find("\"", start + 1);
+        if (var == 'x')
+        {
+          x = std::stod(line.substr(start + 1, end - start - 1));
+        }
+        if (var == 'y')
+        {
+          y = std::stod(line.substr(start + 1, end - start - 1));
+        }
+        if (var == 'z')
+        {
+          z = std::stod(line.substr(start + 1, end - start - 1));
+        }
+      }
+      points.push_back(Point_3(x, y, z));
+    }
+  }
+  input.close();
+  return true;
+}
+
+// constructing 2d lines from points
+void Analyzer::construct_lines(std::vector<Point_3> &points, std::vector<Segment_2> &lines)
 {
   auto start = points.begin();
-  mycode::Point_2 start_2(start->x(), start->z());
+  Point_2 start_2(start->x(), start->z());
   for (auto p = points.begin(); p != points.end(); p++)
   {
-    mycode::Point_2 p_2(p->x(), p->z());
+    Point_2 p_2(p->x(), p->z());
     auto q = std::next(p, 1);
     if (q == points.end()) {
-      lines.push_back(mycode::Segment_2(p_2, start_2));
+      lines.push_back(Segment_2(p_2, start_2));
     } else {
-      mycode::Point_2 q_2(q->x(), q->z());
-      lines.push_back(mycode::Segment_2(p_2, q_2));
+      Point_2 q_2(q->x(), q->z());
+      lines.push_back(Segment_2(p_2, q_2));
     }
   }
 }
 
 // return true if a point is within a closed 2D segment set
-bool Analyzer::within_lines(mycode::Point_2 &point, std::vector<mycode::Segment_2> &lines)
+bool Analyzer::within_lines(Point_2 &point, std::vector<Segment_2> &lines)
 {
-  mycode::Vector_2 random_vec = random_vector_2();
-  mycode::Ray_2 ray(point, random_vec);
+  Vector_2 random_vec = random_vector_2();
+  Ray_2 ray(point, random_vec);
   int count = 0;
   for (auto l : lines)
   {
@@ -137,20 +236,20 @@ bool Analyzer::within_lines(mycode::Point_2 &point, std::vector<mycode::Segment_
 // compute taper (half of toc)
 void Analyzer::compute_taper()
 {
-  // used when division enabled
-  std::vector<mycode::FT> tapers_lingual;
-  std::vector<mycode::FT> tapers_buccal;
-  std::vector<mycode::FT> tapers_mesial;
-  std::vector<mycode::FT> tapers_distal;
+  /* used when division enabled */
+  std::vector<double> tapers_lingual;
+  std::vector<double> tapers_buccal;
+  std::vector<double> tapers_mesial;
+  std::vector<double> tapers_distal;
 
-  // used when division disabled
-  std::vector<mycode::FT> tapers;
+  /* used when division disabled */
+  std::vector<double> tapers;
 
-  /* compute toc
-   * first we compute the "average" point of occlusal points */
+  /* first we compute the "average" point of occlusal points
+   * which will be the center of the circle */
   int count = 0;
-  mycode::FT x_avg = 0;
-  mycode::FT z_avg = 0;
+  double x_avg = 0;
+  double z_avg = 0;
   for (auto op : occlusal_points)
   {
     x_avg += op.x();
@@ -164,13 +263,13 @@ void Analyzer::compute_taper()
   for (auto target_point : occlusal_points)
   {
     /* compute far point */
-    mycode::FT max_angle = -1;
-    mycode::Point_3 far_point;
+    double max_angle = -1;
+    Point_3 far_point;
     for (auto op : occlusal_points)
     {
-      mycode::FT angle = CGAL::approximate_angle(mycode::Point_3(target_point.x(), 0, target_point.z()),
-                                                 mycode::Point_3(x_avg, 0, z_avg),
-                                                 mycode::Point_3(op.x(), 0, op.z()));
+      double angle = CGAL::approximate_angle(Point_3(target_point.x(), 0, target_point.z()),
+                                                 Point_3(x_avg, 0, z_avg),
+                                                 Point_3(op.x(), 0, op.z()));
       if (angle > max_angle)
       {
         far_point = op;
@@ -179,11 +278,11 @@ void Analyzer::compute_taper()
     }
 
     /* compute axial wall approx of target point */
-    mycode::Point_3 vertical_point;
-    mycode::FT min_angle = 180;
+    Point_3 vertical_point;
+    double min_angle = 180;
     for (auto ap : axial_points)
     {
-      mycode::FT angle = CGAL::approximate_angle(mycode::Vector_3(ap, target_point), mycode::Vector_3(0, 1, 0));
+      double angle = CGAL::approximate_angle(Vector_3(ap, target_point), Vector_3(0, 1, 0));
       if (angle < min_angle)
       {
         vertical_point = ap;
@@ -191,14 +290,14 @@ void Analyzer::compute_taper()
       }
     }
     /* use mid point for approximating axial wall slope */
-    mycode::Point_3 mid_point = student_tree.closest_point(CGAL::midpoint(target_point, vertical_point));
-    mycode::Vector_3 v1 = mycode::Vector_3(vertical_point, mid_point);
+    Point_3 mid_point = student_tree.closest_point(CGAL::midpoint(target_point, vertical_point));
+    Vector_3 v1(vertical_point, mid_point);
 
-    /* compute axial wall approx of far point */
+    /* similarly, compute axial wall approx of far point */
     min_angle = 180;
     for (auto ap : axial_points)
     {
-      mycode::FT angle = CGAL::approximate_angle(mycode::Vector_3(ap, far_point), mycode::Vector_3(0, 1, 0));
+      double angle = CGAL::approximate_angle(Vector_3(ap, far_point), Vector_3(0, 1, 0));
       if (angle < min_angle)
       {
         vertical_point = ap;
@@ -206,7 +305,7 @@ void Analyzer::compute_taper()
       }
     }
 
-    /* use midpoint for approximating axial wall slope */
+    /* similarly, use midpoint for approximating axial wall slope */
     mid_point = student_tree.closest_point(CGAL::midpoint(far_point, vertical_point));
     mycode::Vector_3 v2 = mycode::Vector_3(vertical_point, mid_point);
 
@@ -237,21 +336,7 @@ void Analyzer::compute_taper()
   }
 
   /* report stats to the console */
-  emit msgToConsole("=============");
-  emit msgToConsole("=== TAPER ===");
-  emit msgToConsole("=============");
-  if (param.divisionEnabled) {
-    emit msgToConsole("=== Lingual ===");
-    report_stats(&student_result.taper_stats[0], tapers_lingual);
-    emit msgToConsole("=== Buccal ===");
-    report_stats(&student_result.taper_stats[1], tapers_buccal);
-    emit msgToConsole("=== Mesial ===");
-    report_stats(&student_result.taper_stats[2], tapers_mesial);
-    emit msgToConsole("=== Distal ===");
-    report_stats(&student_result.taper_stats[3], tapers_distal);
-  } else {
-    report_stats(&student_result.taper_stats[0], tapers);
-  }
+  report_stats("TAPER", student_result.taper_stats, tapers, tapers_lingual, tapers_buccal, tapers_mesial, tapers_distal);
 }
 
 void Analyzer::compute_occlusal_reduction()
@@ -291,21 +376,7 @@ void Analyzer::compute_occlusal_reduction()
   }
 
   /* report stats to the console */
-  emit msgToConsole("==========================");
-  emit msgToConsole("=== OCCLUSAL REDUCTION ===");
-  emit msgToConsole("==========================");
-  if (param.divisionEnabled) {
-    emit msgToConsole("=== Lingual ===");
-    report_stats(&student_result.occlusal_reduction_stats[0], occlusal_reductions_lingual);
-    emit msgToConsole("=== Buccal ===");
-    report_stats(&student_result.occlusal_reduction_stats[1], occlusal_reductions_buccal);
-    emit msgToConsole("=== Mesial ===");
-    report_stats(&student_result.occlusal_reduction_stats[2], occlusal_reductions_mesial);
-    emit msgToConsole("=== Distal ===");
-    report_stats(&student_result.occlusal_reduction_stats[3], occlusal_reductions_distal);
-  } else {
-    report_stats(&student_result.occlusal_reduction_stats[0], occlusal_reductions);
-  }
+   report_stats("OCCLUSAL REDUCTION", student_result.occlusal_reduction_stats, occlusal_reductions, occlusal_reductions_lingual, occlusal_reductions_buccal, occlusal_reductions_mesial, occlusal_reductions_distal);
 }
 
 void Analyzer::compute_margin_depth()
@@ -317,7 +388,7 @@ void Analyzer::compute_margin_depth()
 
   std::vector<mycode::FT> margin_depths;
 
-  for (auto& p : margin_points) {
+  for (auto p : margin_points) {
     mycode::Point_3 point_half_mm_above(p.x(), p.y() + 0.5, p.z());
     mycode::Point_3 student_point = student_tree.closest_point(point_half_mm_above);
     mycode::Point_3 original_point = original_tree.closest_point(point_half_mm_above);
@@ -344,32 +415,17 @@ void Analyzer::compute_margin_depth()
     student_result.margin_depth_data.push_back(std::make_pair(p, dist));
   }
 
-  /* report stats to the console */
-  emit msgToConsole("====================");
-  emit msgToConsole("=== MARGIN DEPTH ===");
-  emit msgToConsole("====================");
-  if (param.divisionEnabled) {
-    emit msgToConsole("=== Lingual ===");
-    report_stats(&student_result.margin_depth_stats[0], margin_depths_lingual);
-    emit msgToConsole("=== Buccal ===");
-    report_stats(&student_result.margin_depth_stats[1], margin_depths_buccal);
-    emit msgToConsole("=== Mesial ===");
-    report_stats(&student_result.margin_depth_stats[2], margin_depths_mesial);
-    emit msgToConsole("=== Distal ===");
-    report_stats(&student_result.margin_depth_stats[3], margin_depths_distal);
-  } else {
-    report_stats(&student_result.margin_depth_stats[0], margin_depths);
-  }
+  report_stats("MARGIN DEPTH", student_result.margin_depth_stats, margin_depths, margin_depths_lingual, margin_depths_buccal, margin_depths_mesial,margin_depths_distal);
 }
 
 void Analyzer::compute_gingival_extension()
 {
-  std::vector<mycode::FT> gingival_extension_lingual;
-  std::vector<mycode::FT> gingival_extension_buccal;
-  std::vector<mycode::FT> gingival_extension_mesial;
-  std::vector<mycode::FT> gingival_extension_distal;
+  std::vector<mycode::FT> gingival_extensions_lingual;
+  std::vector<mycode::FT> gingival_extensions_buccal;
+  std::vector<mycode::FT> gingival_extensions_mesial;
+  std::vector<mycode::FT> gingival_extensions_distal;
 
-  std::vector<mycode::FT> gingival_extension;
+  std::vector<mycode::FT> gingival_extensions;
 
   for (auto mp : margin_points)
   {
@@ -389,42 +445,27 @@ void Analyzer::compute_gingival_extension()
     if (param.divisionEnabled) {
       switch (region_of(mp)) {
         case Lingual:
-          gingival_extension_lingual.push_back(height_diff);
+          gingival_extensions_lingual.push_back(height_diff);
           break;
         case Buccal:
-          gingival_extension_buccal.push_back(height_diff);
+          gingival_extensions_buccal.push_back(height_diff);
           break;
         case Mesial:
-          gingival_extension_mesial.push_back(height_diff);
+          gingival_extensions_mesial.push_back(height_diff);
           break;
         case Distal:
-          gingival_extension_distal.push_back(height_diff);
+          gingival_extensions_distal.push_back(height_diff);
           break;
       }
     } else {
-      gingival_extension.push_back(height_diff);
+      gingival_extensions.push_back(height_diff);
     }
 
     student_result.gingival_extension_data.push_back(std::make_pair(mp, height_diff));
   }
 
   /* report stats to the console */
-
-  emit msgToConsole("==========================");
-  emit msgToConsole("=== GINGIVAL EXTENSION ===");
-  emit msgToConsole("==========================");
-  if (param.divisionEnabled) {
-    emit msgToConsole("=== Lingual ===");
-    report_stats(&student_result.gingival_extension_stats[0], gingival_extension_lingual);
-    emit msgToConsole("=== Buccal ===");
-    report_stats(&student_result.gingival_extension_stats[1], gingival_extension_buccal);
-    emit msgToConsole("=== Mesial ===");
-    report_stats(&student_result.gingival_extension_stats[2], gingival_extension_mesial);
-    emit msgToConsole("=== Distal ===");
-    report_stats(&student_result.gingival_extension_stats[3], gingival_extension_distal);
-  } else {
-    report_stats(&student_result.gingival_extension_stats[0], gingival_extension);
-  }
+  report_stats("GINGIVAL EXTENSION", student_result.gingival_extension_stats, gingival_extensions, gingival_extensions_lingual, gingival_extensions_buccal, gingival_extensions_mesial, gingival_extensions_distal);
 }
 
 void Analyzer::compute_shoulder_width()
@@ -470,21 +511,7 @@ void Analyzer::compute_shoulder_width()
   }
 
   /* report stats to the console */
-  emit msgToConsole("======================");
-  emit msgToConsole("=== SHOULDER WIDTH ===");
-  emit msgToConsole("======================");
-  if (param.divisionEnabled) {
-    emit msgToConsole("=== Lingual ===");
-    report_stats(&student_result.shoulder_width_stats[0], shoulder_widths_lingual);
-    emit msgToConsole("=== Buccal ===");
-    report_stats(&student_result.shoulder_width_stats[1], shoulder_widths_buccal);
-    emit msgToConsole("=== Mesial ===");
-    report_stats(&student_result.shoulder_width_stats[2], shoulder_widths_mesial);
-    emit msgToConsole("=== Distal ===");
-    report_stats(&student_result.shoulder_width_stats[3], shoulder_widths_distal);
-  } else {
-    report_stats(&student_result.shoulder_width_stats[0], shoulder_widths);
-  }
+  report_stats("SHOULDER WIDTH", student_result.shoulder_width_stats, shoulder_widths, shoulder_widths_lingual, shoulder_widths_buccal, shoulder_widths_mesial, shoulder_widths_distal);
 }
 
 void Analyzer::compute_axial_wall_height()
@@ -533,21 +560,7 @@ void Analyzer::compute_axial_wall_height()
   }
 
   /* report stats to the console */
-  emit msgToConsole("=========================");
-  emit msgToConsole("=== AXIAL WALL HEIGHT ===");
-  emit msgToConsole("=========================");
-  if (param.divisionEnabled) {
-    emit msgToConsole("=== Lingual ===");
-    report_stats(&student_result.axial_wall_height_stats[0], axial_wall_height_lingual);
-    emit msgToConsole("=== Buccal ===");
-    report_stats(&student_result.axial_wall_height_stats[1], axial_wall_height_buccal);
-    emit msgToConsole("=== Mesial ===");
-    report_stats(&student_result.axial_wall_height_stats[2], axial_wall_height_mesial);
-    emit msgToConsole("=== Distal ===");
-    report_stats(&student_result.axial_wall_height_stats[3], axial_wall_height_distal);
-  } else {
-    report_stats(&student_result.axial_wall_height_stats[0], axial_wall_height);
-  }
+  report_stats("AXIAL WALL HEIGHT", student_result.axial_wall_height_stats, axial_wall_height, axial_wall_height_lingual, axial_wall_height_buccal, axial_wall_height_mesial, axial_wall_height_distal);
 }
 
 Region Analyzer::region_of(mycode::Point_3 point)
@@ -718,16 +731,37 @@ void Analyzer::select_tooth_points(std::unordered_set<mycode::vertex_descriptor>
   }
 }
 
-void Analyzer::report_stats(Stats* stats, const std::vector<mycode::FT> &values)
+void Analyzer::report_stats(QString metric, Stats* stats_arr,
+                            const std::vector<mycode::FT> &values,
+                            const std::vector<mycode::FT> &values_lingual,
+                            const std::vector<mycode::FT> &values_buccal,
+                            const std::vector<mycode::FT> &values_mesial,
+                            const std::vector<mycode::FT> &values_distal)
 {
+  emit msgToConsole(QString("<h2 style=\"color:#FF0c32;\">%1</h2>").arg(metric));
+  if (param.divisionEnabled) {
+    emit msgToConsole("<h3>Lingual</h3>");
+    compute_stats(stats_arr[0], values_lingual);
+    emit msgToConsole("<h3>Buccal</h3>");
+    compute_stats(stats_arr[1], values_buccal);
+    emit msgToConsole("<h3>Mesial</h3>");
+    compute_stats(stats_arr[2], values_mesial);
+    emit msgToConsole("<h3>Distal</h3>");
+    compute_stats(stats_arr[3], values_distal);
+  } else {
+    compute_stats(stats_arr[0], values);
+  }
+}
+
+void Analyzer::compute_stats(Stats &stats, const std::vector<mycode::FT> &values) {
   double average = accumulate(values.begin(), values.end(), 0.0)/values.size();
   double max = *max_element(values.begin(), values.end());
   double min = *min_element(values.begin(), values.end());
-  stats->avg = average;
-  stats->max = max;
-  stats->min = min;
-  emit msgToConsole(QString("number of values in region = %1").arg(values.size()));
-  emit msgToConsole(QString("average = %1").arg(average));
-  emit msgToConsole(QString("max = %1").arg(max));
-  emit msgToConsole(QString("min = %1").arg(min));
+  stats.avg = average;
+  stats.max = max;
+  stats.min = min;
+  emit msgToConsole(QString("number of values in region = <b>%1</b>").arg(values.size()));
+  emit msgToConsole(QString("average = <b>%1</b>").arg(average));
+  emit msgToConsole(QString("max = <b>%1</b>").arg(max));
+  emit msgToConsole(QString("min = <b>%1</b>").arg(min));
 }

@@ -26,7 +26,7 @@ enum Region {
 
 namespace mycode
 {
-    typedef CGAL::Simple_cartesian<float> K;
+    typedef CGAL::Simple_cartesian<double> K;
     typedef K::Point_3 Point_3;
     typedef K::Segment_3 Segment_3;
     typedef K::Line_3 Line_3;
@@ -53,4 +53,5 @@ namespace mycode
 
     namespace params = CGAL::parameters;
 } // namespace mycode
+
 #endif

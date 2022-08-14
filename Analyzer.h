@@ -35,7 +35,13 @@ signals:
 
 private:
     // initialize private variables
-    void init();
+    bool init();
+
+    // parse .off file to mesh and polyhedral surface
+    bool read_off(string file, mycode::Mesh &mesh, mycode::Polyhedron &poly);
+
+    // read in points in .pp file
+    bool readpp(std::vector<mycode::Point_3> &points, std::string filename);
 
     // constructing 2d lines from points
     void construct_lines(std::vector<mycode::Point_3> &points, std::vector<mycode::Segment_2> &lines);
@@ -76,8 +82,16 @@ private:
     // select vertices on tooth
     void select_tooth_points(std::unordered_set<mycode::vertex_descriptor> &vertexSet);
 
+    // write stats to console
+    void report_stats(QString metric, Stats* stats_arr,
+                      const std::vector<mycode::FT> &values,
+                      const std::vector<mycode::FT> &values_lingual,
+                      const std::vector<mycode::FT> &values_buccal,
+                      const std::vector<mycode::FT> &values_mesial,
+                      const std::vector<mycode::FT> &values_distal);
+
     // report avg, min, max of an array of numbers, and record them in stats struct
-    void report_stats(Stats* stats, const std::vector<mycode::FT> &values);
+    void compute_stats(Stats &stats, const std::vector<mycode::FT> &values);
 
     bool debug = false; /* debug flag for testing */
 
