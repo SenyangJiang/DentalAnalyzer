@@ -3,83 +3,83 @@
 ### Import Original Prep in MeshLab
 Before using Dental Analyzer, we need to do some preprocessing on the student prep and original prep. MeshLab is included in the installation package of Dental Analyzer. Go to the DentalAnalyzer folder, open MeshLab\meshlab.exe.
 
-    ![Picture 1](./tutorial_assets/Picture1.png)
+![Picture 1](./tutorial_assets/Picture1.png)
 
-   Open MeshLab. Import **original prep** model by clicking Files->Import Mesh. Or you can import the model by directly dragging the mesh file to the MeshLab interface
+Open MeshLab. Import **original prep** model by clicking Files->Import Mesh. Or you can import the model by directly dragging the mesh file to the MeshLab interface
 
-    ![Picture 2](./tutorial_assets/Picture2.png)
+![Picture 2](./tutorial_assets/Picture2.png)
 
 ### Align Original Prep to positive y axis
 After importing the original prep, the first thing is to check the ‘up’ direction of the crown that we are interested in aligns with **the positive y axis**. This is an important step because Dental Analyzer assumes the ‘up’ direction of the prep to be the **positive y** direction. Below is my method of aligning the crown with the y-axis.
    
-    click on the coordinate button ![Axis](./tutorial_assets/axis.png) on the tool bar to show the world axis. In this example, we see that the crown does not align with the y axis.
+click on the coordinate button ![Axis](./tutorial_assets/axis.png) on the tool bar to show the world axis. In this example, we see that the crown does not align with the y axis.
 
-    ![Picture 3](./tutorial_assets/Picture3.png)
+![Picture 3](./tutorial_assets/Picture3.png)
 
-    Use the manipulator tool ![manipulator](./tutorial_assets/manipulator.png) on the tool bar to transform the mesh to the desired position. Follow the instructions to transform the mesh using your mouse.
+Use the manipulator tool ![manipulator](./tutorial_assets/manipulator.png) on the tool bar to transform the mesh to the desired position. Follow the instructions to transform the mesh using your mouse.
 
-    Tip: when you want to change the view when transforming, hit 'Esc' key to exit the manipulator mode so that you can change the view, and hit 'Esc' key again to return to the manipulator mode.
+Tip: when you want to change the view when transforming, hit 'Esc' key to exit the manipulator mode so that you can change the view, and hit 'Esc' key again to return to the manipulator mode.
 
-    In this example, I moved the crown to the origin so that I can check more easily whether it aligns with the y-axis.
+In this example, I moved the crown to the origin so that I can check more easily whether it aligns with the y-axis.
 
-    ![Picture 4](./tutorial_assets/Picture4.png)
+![Picture 4](./tutorial_assets/Picture4.png)
 
-    After aligning the model with the y-axis, save the transformation by Filters -> Mesh Layer -> Matrix: Freeze Current Matrix
+After aligning the model with the y-axis, save the transformation by Filters -> Mesh Layer -> Matrix: Freeze Current Matrix
     
-    ![Picture 5](./tutorial_assets/Picture5.png)
+![Picture 5](./tutorial_assets/Picture5.png)
     
-    Finally, **Export the mesh in .OFF format** in File->Export Mesh As… The .OFF format prep model is what the Dental Analyzer takes as input. Don't close the window as we are going to use the aligned original prep in the next step.
+Finally, **Export the mesh in .OFF format** in File->Export Mesh As… The .OFF format prep model is what the Dental Analyzer takes as input. Don't close the window as we are going to use the aligned original prep in the next step.
 ### Align Student Prep to Original Prep
 Next, we will align the student models to the original prep model. Import the student prep models (there could be more than one) and original prep model (aligned to y-axis). We will use two student preps in this example.
    
-   Click on the Alignment tool ![align](./tutorial_assets/alignment.png) on the toolbar, and a window should pop up.
+Click on the Alignment tool ![align](./tutorial_assets/alignment.png) on the toolbar, and a window should pop up.
 
-    ![Picture 6](./tutorial_assets/Picture6.png)
+![Picture 6](./tutorial_assets/Picture6.png)
 
-    Since we want to align the student prep model to the original prep model, we will ‘glue’ the original prep model at its current place. Click the name of the original prep model in the window, and click ‘Glue Here Mesh’. An asterisk * should appear near the name of the original prep model.
+Since we want to align the student prep model to the original prep model, we will ‘glue’ the original prep model at its current place. Click the name of the original prep model in the window, and click ‘Glue Here Mesh’. An asterisk * should appear near the name of the original prep model.
 
-    ![Picture 7](./tutorial_assets/Picture7.png)
+![Picture 7](./tutorial_assets/Picture7.png)
 
-    Then we will align the each student prep model with the original prep model. 
+Then we will align the each student prep model with the original prep model. 
     
-    For each student model, click the name of the student prep model, and then click ‘Point Based Glueing’, a new window should pop up.
+For each student model, click the name of the student prep model, and then click ‘Point Based Glueing’, a new window should pop up.
 
-    ![Picture 11](./tutorial_assets/Picture8.png)
+![Picture 8](./tutorial_assets/Picture8.png)
     
-    Select at least 4 matching pair of points on the two meshes. Double click to add points on each mesh. After finishing selecting the points, click OK, and the result should be similar to the following.
+Select at least 4 matching pair of points on the two meshes. Double click to add points on each mesh. After finishing selecting the points, click OK, and the result should be similar to the following.
 
-    ![Picture 12](./tutorial_assets/Picture9.png)
+![Picture 9](./tutorial_assets/Picture9.png)
 
-    Perform the same above alignment steps for each of the student models.
+Perform the same above alignment steps for each of the student models.
 
-    ![Picture 13](./tutorial_assets/Picture10.png)
+![Picture 10](./tutorial_assets/Picture10.png)
 
-    Then, click ‘Process’, and MeshLab will further improve the alignment based on the ‘Point Based Glueing’ results using ICP. 
+Then, click ‘Process’, and MeshLab will further improve the alignment based on the ‘Point Based Glueing’ results using ICP. 
 
-    ![Picture 14](./tutorial_assets/Picture11.png)
+![Picture 11](./tutorial_assets/Picture11.png)
 
-    Now all models have a position matrix that is different from the identity matrix. Since we want to assign the identity matrix to the original prep model, click the name of the original prep model, and click ‘Set as Base Mesh’. This will assign the identity matrix to the original prep model.
+Now all models have a position matrix that is different from the identity matrix. Since we want to assign the identity matrix to the original prep model, click the name of the original prep model, and click ‘Set as Base Mesh’. This will assign the identity matrix to the original prep model.
 
-    ![Picture 15](./tutorial_assets/Picture12.png)
+![Picture 12](./tutorial_assets/Picture12.png)
 
-    Freeze (Filters -> Mesh Layer -> Matrix: Freeze Current Matrix) and save the aligned student preps as **.OFF files**.
+Freeze (Filters -> Mesh Layer -> Matrix: Freeze Current Matrix) and save the aligned student preps as **.OFF files**.
 
 ### Mark lines on Student Prep
 Then we need to mark the lines (gingiva line, margin line, axial line, occlusal line) on the **transformed student prep model** we saved on step 3. These lines are required as input to Dental Analyzer. We will mark margin lines on the student prep model as an example.
 Meshlab does not have tools to mark lines on the model. To get around this, we will mark a set of points on the model using the **PickPoints** ![pickpoint](./tutorial_assets/pickpoint.png) utility. You can find this tool near the middle of the tool bar in the MeshLab UI.
 Open the .OFF file we saved for the student prep model in step 4, click on the PickPoints utility in the tool bar, a window should open on the upper-right corner of the screen.
 
-    ![Picture 17](./tutorial_assets/Picture13.png)
+![Picture 13](./tutorial_assets/Picture13.png)
 
-    Untick the ‘Show Normal’ option at the bottom of the window, since we are not interested in normal of the points. Use right click to pick points, and if you want to move or rotate the model, use ‘Esc’ to toggle between PickPoints mode and view mode. **It is important that you pick points in a way that current point is next to previous point, i.e. you should pick points sequentially in space.**
+Untick the ‘Show Normal’ option at the bottom of the window, since we are not interested in normal of the points. Use right click to pick points, and if you want to move or rotate the model, use ‘Esc’ to toggle between PickPoints mode and view mode. **It is important that you pick points in a way that current point is next to previous point, i.e. you should pick points sequentially in space.**
 
-    ![Picture 18](./tutorial_assets/Picture14.png)
+![Picture 14](./tutorial_assets/Picture14.png)
 
-    After finishing picking the points, save it as .pp file by clicking on the 'Save' button on the top right corner. Then, remove all the picked points in the window, and repeat the process for each of the four lines (gingiva line, margin line, axial line, occlusal line).
+After finishing picking the points, save it as .pp file by clicking on the 'Save' button on the top right corner. Then, remove all the picked points in the window, and repeat the process for each of the four lines (gingiva line, margin line, axial line, occlusal line).
 
 
 ## Tutorial: How to use Dental Analyzer
-1. Open the DentalAnalyzer, you should see an interface like the following.
+Open the DentalAnalyzer, you should see an interface like the following.
 
 ![Picture 15](./tutorial_assets/Picture15.png)
 
