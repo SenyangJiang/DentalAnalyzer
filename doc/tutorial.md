@@ -1,6 +1,6 @@
 ## Tutorial: How to prepare the data for Dental Analyzer
 
-### Import Original Prep in MeshLab
+### 1. Import Original Prep in MeshLab
 Before using Dental Analyzer, we need to do some preprocessing on the student prep and original prep. MeshLab is included in the installation package of Dental Analyzer. Go to the DentalAnalyzer folder, open MeshLab\meshlab.exe.
 
 ![Picture 1](./tutorial_assets/Picture1.png)
@@ -9,7 +9,7 @@ Open MeshLab. Import **original prep** model by clicking Files->Import Mesh. Or 
 
 ![Picture 2](./tutorial_assets/Picture2.png)
 
-### Align Original Prep to positive y axis
+### 2. Align Original Prep to positive y axis
 After importing the original prep, the first thing is to check the ‘up’ direction of the crown that we are interested in aligns with **the positive y axis**. This is an important step because Dental Analyzer assumes the ‘up’ direction of the prep to be the **positive y** direction. Below is my method of aligning the crown with the y-axis.
    
 click on the coordinate button ![Axis](./tutorial_assets/axis.png) on the tool bar to show the world axis. In this example, we see that the crown does not align with the y axis.
@@ -29,7 +29,7 @@ After aligning the model with the y-axis, save the transformation by Filters -> 
 ![Picture 5](./tutorial_assets/Picture5.png)
     
 Finally, **Export the mesh in .OFF format** in File->Export Mesh As… The .OFF format prep model is what the Dental Analyzer takes as input. Don't close the window as we are going to use the aligned original prep in the next step.
-### Align Student Prep to Original Prep
+### 3. Align Student Prep to Original Prep
 Next, we will align the student models to the original prep model. Import the student prep models (there could be more than one) and original prep model (aligned to y-axis). We will use two student preps in this example.
    
 Click on the Alignment tool ![align](./tutorial_assets/alignment.png) on the toolbar, and a window should pop up.
@@ -64,7 +64,7 @@ Now all models have a position matrix that is different from the identity matrix
 
 Freeze (Filters -> Mesh Layer -> Matrix: Freeze Current Matrix) and save the aligned student preps as **.OFF files**.
 
-### Mark lines on Student Prep
+### 4. Mark lines on Student Prep
 Then we need to mark the lines (gingiva line, margin line, axial line, occlusal line) on the **transformed student prep model** we saved on step 3. These lines are required as input to Dental Analyzer. We will mark margin lines on the student prep model as an example.
 Meshlab does not have tools to mark lines on the model. To get around this, we will mark a set of points on the model using the **PickPoints** ![pickpoint](./tutorial_assets/pickpoint.png) utility. You can find this tool near the middle of the tool bar in the MeshLab UI.
 Open the .OFF file we saved for the student prep model in step 4, click on the PickPoints utility in the tool bar, a window should open on the upper-right corner of the screen.
