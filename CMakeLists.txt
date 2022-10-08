@@ -21,7 +21,6 @@ set(Boost_DIR "C:/dev/boost_1_75_0/stage/lib/cmake/Boost-1.75.0")
 set(Boost_DEBUG OFF)
 set(CGAL_Boost_USE_STATIC_LIBS ON)
 
-set(EIGEN3_INCLUDE_DIR "C:/eigen-3.3.7")
 set(CMAKE_BUILD_TYPE "Release")
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Multimedia REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Multimedia REQUIRED)
@@ -49,20 +48,6 @@ find_package(Boost REQUIRED COMPONENTS
 if ( NOT Boost_FOUND )
 
   message(STATUS "This project requires the Boost library, and will not be compiled.")
-  return()
-
-endif()
-
-# Eigen 3.1 or greater
-find_package( Eigen3 3.1.0 )
-include(CGAL_Eigen_support)
-if ( TARGET CGAL::Eigen_support )
-
-  set(CGAL_libs ${CGAL_libs} CGAL::Eigen_support)
-
-else()
-
-  message(STATUS "This project requires Eigen 3.1 (or greater), and will not be compiled.")
   return()
 
 endif()
