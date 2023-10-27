@@ -27,7 +27,6 @@
 #include <QFuture> // for async computation
 #include <QtConcurrent/QtConcurrent> // for async computation
 #include <QFile>
-
 using namespace mycode;
 
 // constructor
@@ -349,10 +348,17 @@ void Analyzer::compute_occlusal_reduction()
   std::vector<mycode::FT> occlusal_reductions;
 
   std::unordered_set<mycode::vertex_descriptor> points_on_occlusal;
-  select_occlusal_points(points_on_occlusal);
-  for (auto& vi : points_on_occlusal) {
-    mycode::Point_3 p = student_model.point(vi);
-    mycode::FT dist = CGAL::sqrt(original_tree.squared_distance(p));
+  std::unordered_set<mycode::vertex_descriptor> points_on_original;
+   /* new update:   */
+  occlusal_projected_points(points_on_original);
+  for (auto& vi : points_on_original) {
+    mycode::Point_3 p = original_model.point(vi);
+    mycode::FT dist = CGAL::sqrt(student_tree.squared_distance(p));
+
+//  select_occlusal_points(points_on_occlusal);
+//  for (auto& vi : points_on_occlusal) {
+//    mycode::Point_3 p = student_model.point(vi);
+//    mycode::FT dist = CGAL::sqrt(original_tree.squared_distance(p));
     if (param.divisionEnabled) {
       switch (region_of(p)) {
         case Lingual:
@@ -630,11 +636,34 @@ Region Analyzer::region_of(mycode::Point_3 point)
   }
 }
 
+
+void Analyzer::occlusal_projected_points(std::unordered_set<mycode::vertex_descriptor> &vertexSet){  // upward projection from occlusal points to obtain points on original
+
+    std::unordered_set<mycode::vertex_descriptor> points_on_occlusal;
+    select_occlusal_points(points_on_occlusal);
+
+     for (auto& p : points_on_occlusal){
+        mycode::Point_3 occ_p = student_model.point(p);
+
+       for(mycode::vertex_descriptor ori : original_model.vertices())
+       {
+          mycode::Point_3 ori_p = original_model.point(ori);
+
+          if( std::abs(ori_p.x() - occ_p.x() ) < 0.09 && std::abs(ori_p.z() - occ_p.z()) < 0.09 && (ori_p.y() > occ_p.y()))        // *new update* select vertex points from the orginal model if x and z are similar with the occlusal points
+          {
+              vertexSet.insert(ori);
+          }
+       }
+    }
+
+}
 void Analyzer::select_occlusal_points(std::unordered_set<mycode::vertex_descriptor> &vertexSet)
 {
   /* calculate y average of occlusal points */
   mycode::FT occlusal_avg_y = 0;
   int count = 0;
+
+
   for (auto p = occlusal_points.begin(); p != occlusal_points.end(); p++)
   {
     occlusal_avg_y += p->y();
@@ -655,6 +684,7 @@ void Analyzer::select_occlusal_points(std::unordered_set<mycode::vertex_descript
       vertexSet.insert(vi);
     }
   }
+
 }
 
 void Analyzer::select_shoulder_points(std::unordered_set<mycode::vertex_descriptor> &vertexSet)

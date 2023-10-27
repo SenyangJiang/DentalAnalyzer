@@ -72,6 +72,10 @@ private:
 
     // select vertices on the occlusal
     void select_occlusal_points(std::unordered_set<mycode::vertex_descriptor> &vertexSet);
+    void occlusal_projected_points(std::unordered_set<mycode::vertex_descriptor> &vertexSet);
+
+
+
 
     // select vertices on the shoulder
     void select_shoulder_points(std::unordered_set<mycode::vertex_descriptor> &vertexSet);

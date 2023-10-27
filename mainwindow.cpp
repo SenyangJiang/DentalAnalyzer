@@ -89,6 +89,33 @@ void MainWindow::on_pushButtonAnalyze_clicked()
   QtConcurrent::run(this->m_analyzer, &Analyzer::analyze);
 }
 
+/*new -------------------- */
+
+void MainWindow::on_pushButtonOpenDirectory_clicked()
+{
+    QString dirPath = QFileDialog::getExistingDirectory(this, "Open Folder", QDir::homePath(), QFileDialog::ShowDirsOnly
+                                                    | QFileDialog::DontResolveSymlinks);
+    QDir dir(dirPath);
+
+    QList <QFileInfo> fileList= dir.entryInfoList();
+
+    if(ui->listWidget->count() != 0)
+    {
+        ui->listWidget->clear();
+    }
+
+    for (int i=0; i< fileList.size(); i++)
+    {
+        ui->listWidget->addItem(fileList.at(i).fileName());
+    }
+     connect(ui->listWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(doSomething(QListWidgetItem*)));
+}
+
+/*new -------------------- */
+
+
+
+
 
 void MainWindow::on_pushButtonStudentFolder_clicked()
 {

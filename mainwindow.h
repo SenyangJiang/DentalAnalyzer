@@ -51,6 +51,8 @@ private slots:
     // export results as csv
     void on_pushButtonExport_clicked();
 
+    void on_pushButtonOpenDirectory_clicked();  // new added
+
 private:
     Ui::MainWindow *ui;
     Analyzer* m_analyzer;
