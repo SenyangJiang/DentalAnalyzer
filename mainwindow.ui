@@ -101,11 +101,56 @@ hr { height: 1px; border-width: 0; }
             <bool>false</bool>
            </property>
            <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0">
-            <item row="15" column="2">
-             <widget class="QPushButton" name="pushButtonStudentCenter">
+            <item row="7" column="1">
+             <widget class="QLineEdit" name="lineEditStudentMarginPoints">
+              <property name="focusPolicy">
+               <enum>Qt::ClickFocus</enum>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="placeholderText">
+               <string>No File Specified</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLineEdit" name="lineEditStudentFolder">
+              <property name="focusPolicy">
+               <enum>Qt::ClickFocus</enum>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="placeholderText">
+               <string>No Folder Specified</string>
+              </property>
+             </widget>
+            </item>
+            <item row="15" column="1">
+             <widget class="QLineEdit" name="lineEditStudentMidpoint">
               <property name="enabled">
                <bool>false</bool>
               </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="placeholderText">
+               <string>No File Specified</string>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="2">
+             <widget class="QPushButton" name="pushButtonStudentMarginPoints">
               <property name="text">
                <string>Open File</string>
               </property>
@@ -124,10 +169,23 @@ hr { height: 1px; border-width: 0; }
               </property>
              </widget>
             </item>
-            <item row="4" column="1">
-             <widget class="QLineEdit" name="lineEditStudentFolder">
-              <property name="focusPolicy">
-               <enum>Qt::ClickFocus</enum>
+            <item row="8" column="0">
+             <widget class="QLabel" name="label_4">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Student Axial Points</string>
+              </property>
+             </widget>
+            </item>
+            <item row="14" column="1">
+             <widget class="QLineEdit" name="lineEditStudentCenter">
+              <property name="enabled">
+               <bool>false</bool>
               </property>
               <property name="text">
                <string/>
@@ -136,25 +194,31 @@ hr { height: 1px; border-width: 0; }
                <bool>true</bool>
               </property>
               <property name="placeholderText">
-               <string>No Folder Specified</string>
+               <string>No File Specified</string>
               </property>
              </widget>
             </item>
-            <item row="12" column="2">
+            <item row="11" column="2">
              <widget class="QPushButton" name="pushButtonOriginalModel">
               <property name="text">
                <string>Open File</string>
               </property>
              </widget>
             </item>
-            <item row="5" column="2">
-             <widget class="QPushButton" name="pushButtonStudentModel">
+            <item row="11" column="1">
+             <widget class="QLineEdit" name="lineEditOriginalModel">
               <property name="text">
-               <string>Open File</string>
+               <string/>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="placeholderText">
+               <string>No File Specified</string>
               </property>
              </widget>
             </item>
-            <item row="4" column="0">
+            <item row="3" column="0">
              <widget class="QLabel" name="label">
               <property name="font">
                <font>
@@ -167,36 +231,23 @@ hr { height: 1px; border-width: 0; }
               </property>
              </widget>
             </item>
-            <item row="11" column="0">
-             <widget class="QLabel" name="label_6">
+            <item row="14" column="0">
+             <widget class="QLabel" name="labelStudentCenter">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="font">
                <font>
                 <family>Arial</family>
                 <pointsize>13</pointsize>
                </font>
               </property>
-              <property name="frameShape">
-               <enum>QFrame::NoFrame</enum>
-              </property>
               <property name="text">
-               <string>Student Ginviga Points</string>
+               <string>Student Model Center</string>
               </property>
              </widget>
             </item>
-            <item row="26" column="0" colspan="4">
-             <widget class="QPushButton" name="pushButtonAnalyze">
-              <property name="font">
-               <font>
-                <family>Arial</family>
-                <pointsize>15</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Analyze</string>
-              </property>
-             </widget>
-            </item>
-            <item row="12" column="0">
+            <item row="11" column="0">
              <widget class="QLabel" name="label_7">
               <property name="font">
                <font>
@@ -209,14 +260,87 @@ hr { height: 1px; border-width: 0; }
               </property>
              </widget>
             </item>
-            <item row="9" column="2">
+            <item row="8" column="2">
              <widget class="QPushButton" name="pushButtonStudentAxialPoints">
               <property name="text">
                <string>Open File</string>
               </property>
              </widget>
             </item>
-            <item row="16" column="0">
+            <item row="15" column="2">
+             <widget class="QPushButton" name="pushButtonStudentMidpoint">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>Open File</string>
+              </property>
+             </widget>
+            </item>
+            <item row="25" column="0" colspan="4">
+             <widget class="QPushButton" name="pushButtonAnalyze">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+                <pointsize>15</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Analyze</string>
+              </property>
+             </widget>
+            </item>
+            <item row="14" column="2">
+             <widget class="QPushButton" name="pushButtonStudentCenter">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>Open File</string>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="0">
+             <widget class="QLabel" name="label_3">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Student Margin Points</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="0">
+             <widget class="QLabel" name="label_5">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Student Occlusal Points</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLineEdit" name="lineEditStudentName">
+              <property name="placeholderText">
+               <string>Student Name</string>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="2">
+             <widget class="QPushButton" name="pushButtonStudentGingivaPoints">
+              <property name="text">
+               <string>Open File</string>
+              </property>
+             </widget>
+            </item>
+            <item row="15" column="0">
              <widget class="QLabel" name="labelStudentMidpoint">
               <property name="enabled">
                <bool>false</bool>
@@ -232,75 +356,7 @@ hr { height: 1px; border-width: 0; }
               </property>
              </widget>
             </item>
-            <item row="9" column="0">
-             <widget class="QLabel" name="label_4">
-              <property name="font">
-               <font>
-                <family>Arial</family>
-                <pointsize>13</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Student Axial Points</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="1">
-             <widget class="QLineEdit" name="lineEditStudentModel">
-              <property name="focusPolicy">
-               <enum>Qt::ClickFocus</enum>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="readOnly">
-               <bool>true</bool>
-              </property>
-              <property name="placeholderText">
-               <string>No File Specified</string>
-              </property>
-             </widget>
-            </item>
-            <item row="11" column="1">
-             <widget class="QLineEdit" name="lineEditStudentGingivaPoints">
-              <property name="focusPolicy">
-               <enum>Qt::ClickFocus</enum>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="readOnly">
-               <bool>true</bool>
-              </property>
-              <property name="placeholderText">
-               <string>No File Specified</string>
-              </property>
-             </widget>
-            </item>
-            <item row="9" column="1">
-             <widget class="QLineEdit" name="lineEditStudentAxialPoints">
-              <property name="focusPolicy">
-               <enum>Qt::ClickFocus</enum>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="readOnly">
-               <bool>true</bool>
-              </property>
-              <property name="placeholderText">
-               <string>No File Specified</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QLineEdit" name="lineEditStudentName">
-              <property name="placeholderText">
-               <string>Student Name</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="2">
+            <item row="3" column="2">
              <widget class="QPushButton" name="pushButtonStudentFolder">
               <property name="text">
                <string>Open Folder</string>
@@ -322,24 +378,8 @@ hr { height: 1px; border-width: 0; }
               </property>
              </widget>
             </item>
-            <item row="16" column="1">
-             <widget class="QLineEdit" name="lineEditStudentMidpoint">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="readOnly">
-               <bool>true</bool>
-              </property>
-              <property name="placeholderText">
-               <string>No File Specified</string>
-              </property>
-             </widget>
-            </item>
-            <item row="8" column="1">
-             <widget class="QLineEdit" name="lineEditStudentMarginPoints">
+            <item row="4" column="1">
+             <widget class="QLineEdit" name="lineEditStudentModel">
               <property name="focusPolicy">
                <enum>Qt::ClickFocus</enum>
               </property>
@@ -354,46 +394,7 @@ hr { height: 1px; border-width: 0; }
               </property>
              </widget>
             </item>
-            <item row="12" column="1">
-             <widget class="QLineEdit" name="lineEditOriginalModel">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="readOnly">
-               <bool>true</bool>
-              </property>
-              <property name="placeholderText">
-               <string>No File Specified</string>
-              </property>
-             </widget>
-            </item>
-            <item row="8" column="0">
-             <widget class="QLabel" name="label_3">
-              <property name="font">
-               <font>
-                <family>Arial</family>
-                <pointsize>13</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Student Margin Points</string>
-              </property>
-             </widget>
-            </item>
-            <item row="14" column="0">
-             <widget class="QCheckBox" name="checkBoxDivision">
-              <property name="font">
-               <font>
-                <family>Arial</family>
-                <pointsize>13</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Enable Region Division</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0">
+            <item row="4" column="0">
              <widget class="QLabel" name="label_2">
               <property name="font">
                <font>
@@ -406,47 +407,7 @@ hr { height: 1px; border-width: 0; }
               </property>
              </widget>
             </item>
-            <item row="11" column="2">
-             <widget class="QPushButton" name="pushButtonStudentGingivaPoints">
-              <property name="text">
-               <string>Open File</string>
-              </property>
-             </widget>
-            </item>
-            <item row="8" column="2">
-             <widget class="QPushButton" name="pushButtonStudentMarginPoints">
-              <property name="text">
-               <string>Open File</string>
-              </property>
-             </widget>
-            </item>
-            <item row="15" column="0">
-             <widget class="QLabel" name="labelStudentCenter">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="font">
-               <font>
-                <family>Arial</family>
-                <pointsize>13</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Student Model Center</string>
-              </property>
-             </widget>
-            </item>
-            <item row="16" column="2">
-             <widget class="QPushButton" name="pushButtonStudentMidpoint">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="text">
-               <string>Open File</string>
-              </property>
-             </widget>
-            </item>
-            <item row="10" column="1">
+            <item row="9" column="1">
              <widget class="QLineEdit" name="lineEditStudentOcclusalPoints">
               <property name="focusPolicy">
                <enum>Qt::ClickFocus</enum>
@@ -462,10 +423,10 @@ hr { height: 1px; border-width: 0; }
               </property>
              </widget>
             </item>
-            <item row="15" column="1">
-             <widget class="QLineEdit" name="lineEditStudentCenter">
-              <property name="enabled">
-               <bool>false</bool>
+            <item row="10" column="1">
+             <widget class="QLineEdit" name="lineEditStudentGingivaPoints">
+              <property name="focusPolicy">
+               <enum>Qt::ClickFocus</enum>
               </property>
               <property name="text">
                <string/>
@@ -478,8 +439,8 @@ hr { height: 1px; border-width: 0; }
               </property>
              </widget>
             </item>
-            <item row="10" column="0">
-             <widget class="QLabel" name="label_5">
+            <item row="13" column="0">
+             <widget class="QCheckBox" name="checkBoxDivision">
               <property name="font">
                <font>
                 <family>Arial</family>
@@ -487,24 +448,53 @@ hr { height: 1px; border-width: 0; }
                </font>
               </property>
               <property name="text">
-               <string>Student Occlusal Points</string>
+               <string>Enable Region Division</string>
               </property>
              </widget>
             </item>
-            <item row="10" column="2">
+            <item row="8" column="1">
+             <widget class="QLineEdit" name="lineEditStudentAxialPoints">
+              <property name="focusPolicy">
+               <enum>Qt::ClickFocus</enum>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="placeholderText">
+               <string>No File Specified</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="2">
              <widget class="QPushButton" name="pushButtonStudentOcclusalPoints">
               <property name="text">
                <string>Open File</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="1">
-             <widget class="QListWidget" name="listWidget"/>
-            </item>
-            <item row="3" column="2">
-             <widget class="QPushButton" name="pushButtonOpenDirectory">
+            <item row="10" column="0">
+             <widget class="QLabel" name="label_6">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
               <property name="text">
-               <string>Open Directory</string>
+               <string>Student Ginviga Points</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="2">
+             <widget class="QPushButton" name="pushButtonStudentModel">
+              <property name="text">
+               <string>Open File</string>
               </property>
              </widget>
             </item>

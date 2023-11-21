@@ -50,8 +50,8 @@ int Analyzer::analyze()
   compute_axial_wall_height();
   emit updateProgressBar(46);
   compute_taper();
-  emit updateProgressBar(59);
-  compute_margin_depth();
+  //emit updateProgressBar(59);
+  //compute_margin_depth();
   emit updateProgressBar(72);
   compute_occlusal_reduction();
   emit updateProgressBar(85);
@@ -385,44 +385,44 @@ void Analyzer::compute_occlusal_reduction()
    report_stats("OCCLUSAL REDUCTION", student_result.occlusal_reduction_stats, occlusal_reductions, occlusal_reductions_lingual, occlusal_reductions_buccal, occlusal_reductions_mesial, occlusal_reductions_distal);
 }
 
-void Analyzer::compute_margin_depth()
-{
-  std::vector<mycode::FT> margin_depths_lingual;
-  std::vector<mycode::FT> margin_depths_buccal;
-  std::vector<mycode::FT> margin_depths_mesial;
-  std::vector<mycode::FT> margin_depths_distal;
+//void Analyzer::compute_margin_depth()
+//{
+//  std::vector<mycode::FT> margin_depths_lingual;
+//  std::vector<mycode::FT> margin_depths_buccal;
+//  std::vector<mycode::FT> margin_depths_mesial;
+//  std::vector<mycode::FT> margin_depths_distal;
 
-  std::vector<mycode::FT> margin_depths;
+//  std::vector<mycode::FT> margin_depths;
 
-  for (auto p : margin_points) {
-    mycode::Point_3 point_half_mm_above(p.x(), p.y() + 0.5, p.z());
-    mycode::Point_3 student_point = student_tree.closest_point(point_half_mm_above);
-    mycode::Point_3 original_point = original_tree.closest_point(point_half_mm_above);
-    mycode::FT dist = CGAL::sqrt(CGAL::squared_distance(student_point, original_point));
-    if (param.divisionEnabled) {
-      switch (region_of(p)) {
-        case Lingual:
-          margin_depths_lingual.push_back(dist);
-          break;
-        case Buccal:
-          margin_depths_buccal.push_back(dist);
-          break;
-        case Mesial:
-          margin_depths_mesial.push_back(dist);
-          break;
-        case Distal:
-          margin_depths_distal.push_back(dist);
-          break;
-      }
-    } else {
-      margin_depths.push_back(dist);
-    }
+//  for (auto p : margin_points) {
+//    mycode::Point_3 point_half_mm_above(p.x(), p.y() + 0.5, p.z());
+//    mycode::Point_3 student_point = student_tree.closest_point(point_half_mm_above);
+//    mycode::Point_3 original_point = original_tree.closest_point(point_half_mm_above);
+//    mycode::FT dist = CGAL::sqrt(CGAL::squared_distance(student_point, original_point));
+//    if (param.divisionEnabled) {
+//      switch (region_of(p)) {
+//        case Lingual:
+//          margin_depths_lingual.push_back(dist);
+//          break;
+//        case Buccal:
+//          margin_depths_buccal.push_back(dist);
+//          break;
+//        case Mesial:
+//          margin_depths_mesial.push_back(dist);
+//          break;
+//        case Distal:
+//          margin_depths_distal.push_back(dist);
+//          break;
+//      }
+//    } else {
+//      margin_depths.push_back(dist);
+//    }
 
-    student_result.margin_depth_data.push_back(std::make_pair(p, dist));
-  }
+//    student_result.margin_depth_data.push_back(std::make_pair(p, dist));
+//  }
 
-  report_stats("MARGIN DEPTH", student_result.margin_depth_stats, margin_depths, margin_depths_lingual, margin_depths_buccal, margin_depths_mesial,margin_depths_distal);
-}
+//  report_stats("MARGIN DEPTH", student_result.margin_depth_stats, margin_depths, margin_depths_lingual, margin_depths_buccal, margin_depths_mesial,margin_depths_distal);
+//}
 
 void Analyzer::compute_gingival_extension()
 {

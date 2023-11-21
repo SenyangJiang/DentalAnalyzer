@@ -56,7 +56,7 @@ private:
     void compute_occlusal_reduction();
 
     // compute margin depth
-    void compute_margin_depth();
+//    void compute_margin_depth();
 
     // compute gingival extension
     void compute_gingival_extension();

@@ -91,25 +91,25 @@ void MainWindow::on_pushButtonAnalyze_clicked()
 
 /*new -------------------- */
 
-void MainWindow::on_pushButtonOpenDirectory_clicked()
-{
-    QString dirPath = QFileDialog::getExistingDirectory(this, "Open Folder", QDir::homePath(), QFileDialog::ShowDirsOnly
-                                                    | QFileDialog::DontResolveSymlinks);
-    QDir dir(dirPath);
+//void MainWindow::on_pushButtonOpenDirectory_clicked()
+//{
+//    QString dirPath = QFileDialog::getExistingDirectory(this, "Open Folder", QDir::homePath(), QFileDialog::ShowDirsOnly
+//                                                    | QFileDialog::DontResolveSymlinks);
+//    QDir dir(dirPath);
 
-    QList <QFileInfo> fileList= dir.entryInfoList();
+//    QList <QFileInfo> fileList= dir.entryInfoList();
 
-    if(ui->listWidget->count() != 0)
-    {
-        ui->listWidget->clear();
-    }
+//    if(ui->listWidget->count() != 0)
+//    {
+//        ui->listWidget->clear();
+//    }
 
-    for (int i=0; i< fileList.size(); i++)
-    {
-        ui->listWidget->addItem(fileList.at(i).fileName());
-    }
-     connect(ui->listWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(doSomething(QListWidgetItem*)));
-}
+//    for (int i=0; i< fileList.size(); i++)
+//    {
+//        ui->listWidget->addItem(fileList.at(i).fileName());
+//    }
+//     connect(ui->listWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(doSomething(QListWidgetItem*)));
+//}
 
 /*new -------------------- */
 
@@ -274,10 +274,10 @@ void MainWindow::on_pushButtonExport_clicked()
       out << "Axial Wall Height (" << region_map[i] << "),";
       out << m_analyzer->student_result.axial_wall_height_stats[i].to_csv();
     }
-    for (int i = 0; i < 4; i++) {
-      out << "Margin Depth (" << region_map[i] << "),";
-      out << m_analyzer->student_result.margin_depth_stats[i].to_csv();
-    }
+//    for (int i = 0; i < 4; i++) {
+//      out << "Margin Depth (" << region_map[i] << "),";
+//      out << m_analyzer->student_result.margin_depth_stats[i].to_csv();
+//    }
     for (int i = 0; i < 4; i++) {
       out << "Occlusal Reduction (" << region_map[i] << "),";
       out << m_analyzer->student_result.occlusal_reduction_stats[i].to_csv();
@@ -294,7 +294,7 @@ void MainWindow::on_pushButtonExport_clicked()
     out << "Axial Wall Height,";
     out << m_analyzer->student_result.axial_wall_height_stats[0].to_csv();
     out << "Margin Depth,";
-    out << m_analyzer->student_result.margin_depth_stats[0].to_csv();
+   // out << m_analyzer->student_result.margin_depth_stats[0].to_csv();
     out << "Occlusal Reduction,";
     out << m_analyzer->student_result.occlusal_reduction_stats[0].to_csv();
     out << "Gingival Extension,";
@@ -321,11 +321,11 @@ void MainWindow::on_pushButtonExport_clicked()
   out << "Value,";
   out << values_to_csv(m_analyzer->student_result.axial_wall_height_data);
 
-  out << "Metric: Margin Depth\n";
-  out << "Point,";
-  out << points_to_csv(m_analyzer->student_result.margin_depth_data);
-  out << "Value,";
-  out << values_to_csv(m_analyzer->student_result.margin_depth_data);
+//  out << "Metric: Margin Depth\n";
+//  out << "Point,";
+//  out << points_to_csv(m_analyzer->student_result.margin_depth_data);
+//  out << "Value,";
+//  out << values_to_csv(m_analyzer->student_result.margin_depth_data);
 
   out << "Metric: Occlusal Reduction\n";
   out << "Point,";
